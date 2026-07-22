@@ -169,11 +169,6 @@ export function AssistantMessage({
                 defaultOpen={isLastMessage}
               />
             )}
-            {contentString.length > 0 && (
-              <div className="py-1">
-                <MarkdownText>{contentString}</MarkdownText>
-              </div>
-            )}
 
             {!hideToolCalls && (
               <>
@@ -187,6 +182,12 @@ export function AssistantMessage({
                     <ToolCalls toolCalls={message.tool_calls} />
                   ))}
               </>
+            )}
+
+            {contentString.length > 0 && (
+              <div className="py-1">
+                <MarkdownText>{contentString}</MarkdownText>
+              </div>
             )}
 
             {message && (
