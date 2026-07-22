@@ -19,11 +19,22 @@ def test_doc_id_for_path():
 
 
 def test_ensure_document_markdown_creates_cache(tmp_path, monkeypatch):
-    monkeypatch.setattr(documents_mod, "markdown_cache_dir", lambda: tmp_path / "md")
-    (tmp_path / "md").mkdir()
-    src = tmp_path / "interview_x.docx"
+    interviews = tmp_path / "docs" / "interviews"
+    interviews.mkdir(parents=True)
+    cache = tmp_path / "md"
+    cache.mkdir()
+    monkeypatch.setattr(documents_mod, "markdown_cache_dir", lambda: cache)
+    monkeypatch.setattr(
+        "car_deepagent.analysis_docs.interviews_dir",
+        lambda: interviews,
+    )
+    monkeypatch.setattr(
+        "car_deepagent.analysis_docs.repo_root",
+        lambda: tmp_path,
+    )
+    src = interviews / "interview_x.docx"
     _write_docx(src, ["背景", "受访者来自上海。", "智驾体验", "NOA 总体可用。"])
-    raw = ensure_document_markdown.invoke({"path": str(src)})
+    raw = ensure_document_markdown.invoke({"path": "interview_x"})
     data = json.loads(raw)
     assert data["doc_id"] == "interview_x"
     md_path = Path(data["markdown_path"])

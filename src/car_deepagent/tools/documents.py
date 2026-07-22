@@ -8,6 +8,7 @@ from pathlib import Path
 from docx import Document
 from langchain_core.tools import tool
 
+from car_deepagent.analysis_docs import resolve_interview_file
 from car_deepagent.config import build_chat_model
 from car_deepagent.paths import markdown_cache_dir, summary_trees_dir
 
@@ -56,12 +57,22 @@ def _docx_to_markdown(path: Path) -> str:
 
 @tool
 def ensure_document_markdown(path: str) -> str:
-    """Convert a .docx interview report to cached markdown. Returns JSON with doc_id and markdown_path."""
-    src = Path(path)
-    if not src.exists():
-        return json.dumps({"error": f"File not found: {path}"}, ensure_ascii=False)
-    if src.suffix.lower() != ".docx":
-        return json.dumps({"error": f"Not a .docx file: {path}"}, ensure_ascii=False)
+    """Convert a .docx interview report under docs/interviews to cached markdown.
+
+    Pass a repo path, filename, or stem (e.g. interview_001). Always resolves
+    under docs/interviews/. Returns JSON with doc_id and markdown_path.
+    """
+    resolved = resolve_interview_file(path)
+    if resolved is None:
+        return json.dumps(
+            {
+                "error": (
+                    f"Interview document not found under docs/interviews/: {path}"
+                ),
+            },
+            ensure_ascii=False,
+        )
+    src = resolved
     doc_id = doc_id_for_path(src)
     out = markdown_cache_dir() / f"{doc_id}.md"
     metadata_path = _markdown_metadata_path(out)

@@ -48,6 +48,7 @@ import {
 import { TodoPanel } from "./todo-panel";
 import { SkillPanel } from "./skill-panel";
 import { FilePreviewProvider } from "./file-preview";
+import { InterviewFilePicker } from "./interview-file-picker";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -128,6 +129,7 @@ export function Thread() {
     parseAsBoolean.withDefault(false),
   );
   const [input, setInput] = useState("");
+  const [selectedDocPaths, setSelectedDocPaths] = useState<string[]>([]);
   const {
     contentBlocks,
     setContentBlocks,
@@ -214,18 +216,27 @@ export function Thread() {
 
     const toolMessages = ensureToolCallsHaveResponses(stream.messages);
 
-    const context =
+    const artifact =
       Object.keys(artifactContext).length > 0 ? artifactContext : undefined;
 
+    const runContext =
+      selectedDocPaths.length > 0
+        ? { analysis_doc_paths: selectedDocPaths }
+        : undefined;
+
     stream.submit(
-      { messages: [...toolMessages, newHumanMessage], context },
+      { messages: [...toolMessages, newHumanMessage], context: artifact },
       {
+        context: runContext,
+        config: runContext
+          ? { configurable: { ...runContext } }
+          : undefined,
         streamMode: ["values"],
         streamSubgraphs: true,
         streamResumable: true,
         optimisticValues: (prev) => ({
           ...prev,
-          context,
+          context: artifact,
           messages: [
             ...(prev.messages ?? []),
             ...toolMessages,
@@ -467,6 +478,10 @@ export function Thread() {
                         onSubmit={handleSubmit}
                         className="mx-auto grid max-w-3xl grid-rows-[1fr_auto] gap-2"
                       >
+                        <InterviewFilePicker
+                          selectedPaths={selectedDocPaths}
+                          onChange={setSelectedDocPaths}
+                        />
                         <ContentBlocksPreview
                           blocks={contentBlocks}
                           onRemove={removeBlock}
@@ -569,9 +584,13 @@ export function Thread() {
             </div>
           </div>
         </div>
-        <div className="hidden h-full shrink-0 flex-col gap-3 lg:flex">
-          <SkillPanel />
-          <TodoPanel />
+        <div className="hidden h-full w-80 shrink-0 flex-col gap-3 overflow-hidden py-3 pr-3 lg:flex">
+          <div className="max-h-[40%] shrink-0 overflow-hidden">
+            <SkillPanel />
+          </div>
+          <div className="min-h-0 flex-1">
+            <TodoPanel />
+          </div>
         </div>
       </div>
     </FilePreviewProvider>

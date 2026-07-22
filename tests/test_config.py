@@ -28,3 +28,4 @@ def test_load_settings_reads_env(monkeypatch, tmp_path):
     assert s.base_url == "https://example.com/v1"
     assert s.model == "test-model"
     assert s.timeout_ms == 12345
+    assert s.thinking is True

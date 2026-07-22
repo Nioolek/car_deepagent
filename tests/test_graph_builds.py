@@ -8,7 +8,7 @@ def test_build_graph_returns_compiled_graph(monkeypatch):
     monkeypatch.setattr(
         graph_mod,
         "load_settings",
-        lambda: Settings("k", "https://example.com/v1", "m", 60000),
+        lambda: Settings("k", "https://example.com/v1", "m", 60000, thinking=False),
     )
     monkeypatch.setattr(
         graph_mod,

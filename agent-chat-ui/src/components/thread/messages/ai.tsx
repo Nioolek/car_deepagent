@@ -17,6 +17,10 @@ import { GenericInterruptView } from "./generic-interrupt";
 import { useArtifact } from "../artifact";
 import { extractReasoning } from "@/lib/extract-reasoning";
 import { ReasoningBlock } from "./reasoning";
+import {
+  filterSidebarOnlyToolCalls,
+  isSidebarOnlyTool,
+} from "@/lib/sidebar-tools";
 
 function CustomComponent({
   message,
@@ -137,15 +141,43 @@ export function AssistantMessage({
     "tool_calls" in message &&
     message.tool_calls &&
     message.tool_calls.length > 0;
+  const visibleToolCalls = filterSidebarOnlyToolCalls(
+    hasToolCalls ? message.tool_calls : undefined,
+  );
+  const visibleAnthropicToolCalls = filterSidebarOnlyToolCalls(
+    anthropicStreamedToolCalls,
+  );
   const toolCallsHaveContents =
-    hasToolCalls &&
-    message.tool_calls?.some(
+    visibleToolCalls.length > 0 &&
+    visibleToolCalls.some(
       (tc) => tc.args && Object.keys(tc.args).length > 0,
     );
-  const hasAnthropicToolCalls = !!anthropicStreamedToolCalls?.length;
+  const hasAnthropicToolCalls = visibleAnthropicToolCalls.length > 0;
   const isToolResult = message?.type === "tool";
 
   if (isToolResult && hideToolCalls) {
+    return null;
+  }
+
+  if (isToolResult && isSidebarOnlyTool(message.name)) {
+    return null;
+  }
+
+  const hasVisibleTools =
+    !hideToolCalls &&
+    (toolCallsHaveContents ||
+      hasAnthropicToolCalls ||
+      visibleToolCalls.length > 0);
+
+  const hasAnswerContent = contentString.length > 0;
+
+  // AI turn that only updated sidebar tools (e.g. write_todos) — skip empty bubble
+  if (
+    !isToolResult &&
+    !reasoning &&
+    !hasVisibleTools &&
+    !hasAnswerContent
+  ) {
     return null;
   }
 
@@ -172,14 +204,14 @@ export function AssistantMessage({
 
             {!hideToolCalls && (
               <>
-                {(hasToolCalls && toolCallsHaveContents && (
-                  <ToolCalls toolCalls={message.tool_calls} />
+                {(visibleToolCalls.length > 0 && toolCallsHaveContents && (
+                  <ToolCalls toolCalls={visibleToolCalls} />
                 )) ||
                   (hasAnthropicToolCalls && (
-                    <ToolCalls toolCalls={anthropicStreamedToolCalls} />
+                    <ToolCalls toolCalls={visibleAnthropicToolCalls} />
                   )) ||
-                  (hasToolCalls && (
-                    <ToolCalls toolCalls={message.tool_calls} />
+                  (visibleToolCalls.length > 0 && (
+                    <ToolCalls toolCalls={visibleToolCalls} />
                   ))}
               </>
             )}

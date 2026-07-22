@@ -81,7 +81,7 @@ export function SkillPanel({
   }
 
   return (
-    <aside className="hidden h-full w-72 shrink-0 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white lg:flex">
+    <aside className="flex h-full max-h-full w-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
       {body}
     </aside>
   );

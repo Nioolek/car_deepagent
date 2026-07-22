@@ -72,7 +72,9 @@ pnpm dev
 `http://localhost:2024` 的 `agent` 图，不显示连接配置页，也不要求 LangSmith API Key。
 如需覆盖默认值，可将 `agent-chat-ui/.env.example` 复制为 `.env.local` 后修改。
 
-在输入框中发送带访谈文件路径的问题，例如：
+在输入框上方可勾选 `docs/interviews/` 下的访谈文件；勾选后本轮通过 Runtime `context.analysis_doc_paths` 传给后端，**只允许分析选中文件**（未勾选则行为与以前相同，可在问题里手写路径）。
+
+也可在输入框中直接写路径，例如：
 
 ```text
 请总结 docs/interviews/interview_001.docx 中用户对座舱语音的评价，并给出脚注溯源。

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from deepagents import (
+    FilesystemPermission,
     GeneralPurposeSubagentProfile,
     HarnessProfile,
     create_deep_agent,
@@ -8,8 +9,13 @@ from deepagents import (
 )
 from deepagents.backends.filesystem import FilesystemBackend
 
+from car_deepagent.analysis_docs import AgentContext
 from car_deepagent.config import Settings, build_chat_model, load_settings
-from car_deepagent.middleware import SkillCommandMiddleware
+from car_deepagent.fs_permissions import build_filesystem_permissions
+from car_deepagent.middleware import (
+    AnalysisDocPathsMiddleware,
+    SkillCommandMiddleware,
+)
 from car_deepagent.paths import repo_root
 from car_deepagent.subagents.report_analyst import build_report_analyst_subagent
 from car_deepagent.tools.documents import (
@@ -29,11 +35,16 @@ MAIN_PROMPT = """你是鸿蒙智行用户调研访谈分析智能体。
    `/skills/<skill-name>/SKILL.md`（limit=1000）再执行，不要跳过 skill。
    若本轮消息历史中已有针对某 `/skills/<name>/SKILL.md` 的 `read_file` 结果
    （含用户用 /skill-name 命令触发的加载），不要重复读取该文件，直接按 skill 指令执行。
-2. 长文必须通过 report_analyst 或摘要树工具处理，禁止把全文读进主上下文。
-3. 多篇时尽量并行 task(report_analyst)。
-4. 回答使用 [^doc§chapter] 脚注，并附 ## 参考文献摘录。
-5. 需要用户信息时调用 get_user_profile。
-6. 使用 write_todos 跟踪步骤；上下文将满时用 estimate_tokens 并依赖内置压缩。
+2. 文件系统只允许读取：/skills/**、/docs/interviews/**、
+   /workspace/cache/summary_trees/**、/workspace/cache/markdown/**。
+   访谈 Word 报告一律在 docs/interviews/ 下查找；可用完整路径、文件名或 stem
+   （如 interview_001）。若运行上下文提供了 analysis_doc_paths（界面勾选），
+   本轮只能分析这些路径，不要打开列表外的访谈文档。
+3. 长文必须通过 report_analyst 或摘要树工具处理，禁止把全文读进主上下文。
+4. 多篇时尽量并行 task(report_analyst)。
+5. 回答使用 [^doc§chapter] 脚注，并附 ## 参考文献摘录。
+6. 需要用户信息时调用 get_user_profile。
+7. 使用 write_todos 跟踪步骤；上下文将满时用 estimate_tokens 并依赖内置压缩。
 """
 
 SKILLS_SOURCE = "/skills/"
@@ -42,6 +53,7 @@ SKILLS_SOURCE = "/skills/"
 def _disable_general_purpose(settings: Settings) -> None:
     profile = HarnessProfile(
         general_purpose_subagent=GeneralPurposeSubagentProfile(enabled=False),
+        excluded_tools=frozenset({"execute"}),
     )
     for key in {
         "car-deepagent",
@@ -56,6 +68,7 @@ def build_graph():
     _disable_general_purpose(settings)
     model = build_chat_model()
     backend = FilesystemBackend(root_dir=str(repo_root()), virtual_mode=True)
+    permissions: list[FilesystemPermission] = build_filesystem_permissions()
     return create_deep_agent(
         model=model,
         tools=[
@@ -69,7 +82,12 @@ def build_graph():
         system_prompt=MAIN_PROMPT,
         skills=[SKILLS_SOURCE],
         backend=backend,
-        middleware=[SkillCommandMiddleware(backend=backend)],
+        permissions=permissions,
+        context_schema=AgentContext,
+        middleware=[
+            SkillCommandMiddleware(backend=backend),
+            AnalysisDocPathsMiddleware(),
+        ],
         subagents=[build_report_analyst_subagent()],
     )
 
