@@ -21,6 +21,8 @@ def test_load_settings_reads_env(monkeypatch, tmp_path):
         encoding="utf-8",
     )
     monkeypatch.setenv("CAR_DEEPAGENT_ENV_FILE", str(env))
+    for name in ("LLM_API_KEY", "LLM_BASE_URL", "LLM_MODEL", "LLM_TIMEOUT_MS"):
+        monkeypatch.delenv(name, raising=False)
     s = load_settings()
     assert s.api_key == "test-key"
     assert s.base_url == "https://example.com/v1"

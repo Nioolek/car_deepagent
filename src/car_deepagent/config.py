@@ -26,7 +26,9 @@ def _env_file_path() -> Path:
 
 
 def load_settings() -> Settings:
-    load_dotenv(_env_file_path(), override=False)
+    env_file = _env_file_path()
+    override = bool(os.environ.get("CAR_DEEPAGENT_ENV_FILE"))
+    load_dotenv(env_file, override=override)
     api_key = os.environ.get("LLM_API_KEY", "").strip()
     base_url = os.environ.get("LLM_BASE_URL", "").strip()
     model = os.environ.get("LLM_MODEL", "").strip()
