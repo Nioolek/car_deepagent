@@ -10,6 +10,14 @@ from langchain_core.tools import tool
 from car_deepagent.config import build_chat_model
 from car_deepagent.paths import markdown_cache_dir, summary_trees_dir
 
+_DOC_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
+
+
+def _doc_id_error(doc_id: str) -> str | None:
+    if _DOC_ID_RE.fullmatch(doc_id):
+        return None
+    return json.dumps({"error": f"Invalid doc_id: {doc_id}"}, ensure_ascii=False)
+
 
 def doc_id_for_path(path: str | Path) -> str:
     return Path(path).stem
@@ -96,10 +104,14 @@ def split_chapters(markdown: str) -> list[dict]:
 
 
 def _tree_path(doc_id: str) -> Path:
+    if _doc_id_error(doc_id) is not None:
+        raise ValueError(f"Invalid doc_id: {doc_id}")
     return summary_trees_dir() / f"{doc_id}.json"
 
 
 def _chapter_map(doc_id: str) -> dict[str, dict]:
+    if _doc_id_error(doc_id) is not None:
+        raise ValueError(f"Invalid doc_id: {doc_id}")
     markdown_path = markdown_cache_dir() / f"{doc_id}.md"
     if not markdown_path.exists():
         return {}
@@ -129,6 +141,8 @@ def _summarize_chapter(chapter: dict) -> str:
 @tool
 def ensure_summary_tree(doc_id: str) -> str:
     """Build and cache chapter summaries for a cached markdown document."""
+    if err := _doc_id_error(doc_id):
+        return err
     tree_path = _tree_path(doc_id)
     if tree_path.exists():
         tree = json.loads(tree_path.read_text(encoding="utf-8"))
@@ -171,6 +185,8 @@ def ensure_summary_tree(doc_id: str) -> str:
 @tool
 def get_chapter_summary(doc_id: str, chapter_id: str) -> str:
     """Return one cached chapter summary."""
+    if err := _doc_id_error(doc_id):
+        return err
     tree_path = _tree_path(doc_id)
     if not tree_path.exists():
         return json.dumps(
@@ -202,6 +218,8 @@ def get_chapter_excerpt(
     doc_id: str, chapter_id: str, offset: int = 0, limit: int = 800
 ) -> str:
     """Return a slice of original chapter text with its citation key."""
+    if err := _doc_id_error(doc_id):
+        return err
     chapter = _chapter_map(doc_id).get(chapter_id)
     if chapter is None:
         return json.dumps(

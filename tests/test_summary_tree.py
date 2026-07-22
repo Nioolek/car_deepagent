@@ -59,3 +59,27 @@ def test_ensure_summary_tree_builds_once(tmp_path, monkeypatch):
         )
     )
     assert "NOA" in excerpt["excerpt"] or "雨天" in excerpt["excerpt"]
+
+
+def test_invalid_doc_id_rejected(tmp_path, monkeypatch):
+    monkeypatch.setattr(docs, "markdown_cache_dir", lambda: tmp_path / "md")
+    monkeypatch.setattr(docs, "summary_trees_dir", lambda: tmp_path / "trees")
+    (tmp_path / "md").mkdir()
+    (tmp_path / "trees").mkdir()
+
+    invalid = "../etc/passwd"
+    for tool, args in (
+        (docs.ensure_summary_tree, {"doc_id": invalid}),
+        (docs.get_chapter_summary, {"doc_id": invalid, "chapter_id": "1"}),
+        (
+            docs.get_chapter_excerpt,
+            {"doc_id": invalid, "chapter_id": "1", "offset": 0, "limit": 40},
+        ),
+    ):
+        data = json.loads(tool.invoke(args))
+        assert "error" in data
+        assert "Invalid doc_id" in data["error"]
+
+    assert list((tmp_path / "md").iterdir()) == []
+    assert list((tmp_path / "trees").iterdir()) == []
+    assert not (tmp_path.parent / "etc").exists()
