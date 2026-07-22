@@ -8,3 +8,5 @@ __pycache__/
 workspace/cache/
 *.docx~
 .DS_Store
+.worktrees/
+.superpowers/
