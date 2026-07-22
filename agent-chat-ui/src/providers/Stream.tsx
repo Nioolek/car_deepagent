@@ -12,7 +12,16 @@ import { useQueryState } from "nuqs";
 import { useThreads } from "./Thread";
 import { toast } from "sonner";
 
-export type StateType = { messages: Message[]; ui?: UIMessage[] };
+export type TodoItem = {
+  content: string;
+  status: "pending" | "in_progress" | "completed";
+};
+
+export type StateType = {
+  messages: Message[];
+  ui?: UIMessage[];
+  todos?: TodoItem[];
+};
 
 const useTypedStream = useStream<
   StateType,

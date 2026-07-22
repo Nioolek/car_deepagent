@@ -45,6 +45,7 @@ import {
   ArtifactTitle,
   useArtifactContext,
 } from "./artifact";
+import { TodoPanel } from "./todo-panel";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -284,7 +285,7 @@ export function Thread() {
 
       <div
         className={cn(
-          "grid w-full grid-cols-[1fr_0fr] transition-all duration-500",
+          "grid min-w-0 flex-1 grid-cols-[1fr_0fr] transition-all duration-500",
           artifactOpen && "grid-cols-[3fr_2fr]",
         )}
       >
@@ -388,6 +389,8 @@ export function Thread() {
               <div className="from-background to-background/0 absolute inset-x-0 top-full h-5 bg-gradient-to-b" />
             </div>
           )}
+
+          <TodoPanel variant="mobile" />
 
           <StickToBottom className="relative flex-1 overflow-hidden">
             <StickyToBottomContent
@@ -560,6 +563,7 @@ export function Thread() {
           </div>
         </div>
       </div>
+      <TodoPanel />
     </div>
   );
 }
