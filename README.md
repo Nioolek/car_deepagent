@@ -47,14 +47,15 @@ cp .env.example .env
 cp /home/admin/sha/.env .env
 ```
 
-## 3. 启动 Agent Chat UI（双终端）
+## 3. 启动 Agent Chat UI（双进程）
 
-前端位于 `agent-chat-ui/`（Next.js）。本地开发需同时启动 LangGraph 开发服务器与 Next.js：
+前端位于 `agent-chat-ui/`（Next.js）。本地开发需要打开两个终端，分别启动 LangGraph agent 与 UI：
 
 **终端 1 — LangGraph agent 服务：**
 
 ```bash
-uv sync --extra dev
+# 首次启动需补齐本地 in-memory API runtime
+uv pip install "langgraph-cli[inmem]>=0.2.0"
 uv run langgraph dev
 ```
 
@@ -65,11 +66,25 @@ uv run langgraph dev
 ```bash
 cd agent-chat-ui
 pnpm install
-cp .env.example .env.local   # 按需填写 LANGGRAPH_API_URL 等
 pnpm dev
 ```
 
-浏览器打开 `http://localhost:3000`。前端通过 LangGraph SDK 连接终端 1 的 API。
+浏览器打开 `http://localhost:3000`。UI 默认直连
+`http://localhost:2024` 的 `agent` 图，不显示连接配置页，也不要求 LangSmith API Key。
+如需覆盖默认值，可将 `agent-chat-ui/.env.example` 复制为 `.env.local` 后修改。
+
+在输入框中发送带访谈文件路径的问题，例如：
+
+```text
+请总结 docs/interviews/interview_001.docx 中用户对座舱语音的评价，并给出脚注溯源。
+```
+
+运行过程中可在界面中查看：
+
+- agent 的 todo 列表及状态更新
+- 工具调用参数与工具结果
+- 模型 thinking / reasoning 内容
+- 回答中 `docs/`、`data/`、`workspace/cache/` 下文件的安全预览
 
 ## 4. 启动 / 本地调试（无 UI，推荐脚本）
 

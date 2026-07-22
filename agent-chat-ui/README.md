@@ -1,5 +1,10 @@
 # Agent Chat UI
 
+> **car_deepagent 定制版：** 本目录中的 UI 默认连接
+> `http://localhost:2024` 的 `agent` 图，不显示连接配置页；并增加了 todo
+> 面板、工具调用/结果、thinking/reasoning 展示，以及仓库内分析文件预览。
+> 请按根目录 [README](../README.md) 的双进程步骤启动。
+
 Agent Chat UI is a Next.js application which enables chatting with any LangGraph server with a `messages` key through a chat interface.
 
 > [!NOTE]
