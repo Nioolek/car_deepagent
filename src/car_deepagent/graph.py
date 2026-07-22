@@ -9,6 +9,7 @@ from deepagents import (
 from deepagents.backends.filesystem import FilesystemBackend
 
 from car_deepagent.config import Settings, build_chat_model, load_settings
+from car_deepagent.middleware import SkillCommandMiddleware
 from car_deepagent.paths import repo_root
 from car_deepagent.subagents.report_analyst import build_report_analyst_subagent
 from car_deepagent.tools.documents import (
@@ -26,6 +27,8 @@ MAIN_PROMPT = """你是鸿蒙智行用户调研访谈分析智能体。
 规则：
 1. 开始分析前，先根据用户问题匹配 Skills System 中的技能；用 `read_file` 读取对应
    `/skills/<skill-name>/SKILL.md`（limit=1000）再执行，不要跳过 skill。
+   若本轮消息历史中已有针对某 `/skills/<name>/SKILL.md` 的 `read_file` 结果
+   （含用户用 /skill-name 命令触发的加载），不要重复读取该文件，直接按 skill 指令执行。
 2. 长文必须通过 report_analyst 或摘要树工具处理，禁止把全文读进主上下文。
 3. 多篇时尽量并行 task(report_analyst)。
 4. 回答使用 [^doc§chapter] 脚注，并附 ## 参考文献摘录。
@@ -66,6 +69,7 @@ def build_graph():
         system_prompt=MAIN_PROMPT,
         skills=[SKILLS_SOURCE],
         backend=backend,
+        middleware=[SkillCommandMiddleware(backend=backend)],
         subagents=[build_report_analyst_subagent()],
     )
 
