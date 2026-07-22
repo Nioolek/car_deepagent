@@ -2,6 +2,7 @@ import { AIMessage, ToolMessage } from "@langchain/langgraph-sdk";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { FilePathButtons } from "../file-preview";
 
 function isComplexValue(value: any): boolean {
   return Array.isArray(value) || (typeof value === "object" && value !== null);
@@ -50,6 +51,7 @@ export function ToolCalls({
                         ) : (
                           String(value)
                         )}
+                        <FilePathButtons value={value} />
                       </td>
                     </tr>
                   ))}
@@ -158,6 +160,7 @@ export function ToolResult({ message }: { message: ToolMessage }) {
                               ) : (
                                 String(value)
                               )}
+                              <FilePathButtons value={value} />
                             </td>
                           </tr>
                         );
@@ -165,7 +168,10 @@ export function ToolResult({ message }: { message: ToolMessage }) {
                     </tbody>
                   </table>
                 ) : (
-                  <code className="block text-sm">{displayedContent}</code>
+                  <>
+                    <code className="block text-sm">{displayedContent}</code>
+                    <FilePathButtons value={contentStr} />
+                  </>
                 )}
               </motion.div>
             </AnimatePresence>

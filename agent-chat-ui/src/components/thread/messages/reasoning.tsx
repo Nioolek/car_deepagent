@@ -23,7 +23,7 @@ export function ReasoningBlock({
     >
       <summary className="text-muted-foreground flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
         <BrainCircuit className="size-4" />
-        <span>Reasoning</span>
+        <span>思考过程</span>
         <ChevronDown className="ml-auto size-4 transition-transform group-open/reasoning:rotate-180" />
       </summary>
       <div className="border-border text-muted-foreground border-t px-3 py-2 text-sm">

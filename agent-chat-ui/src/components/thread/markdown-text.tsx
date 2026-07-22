@@ -12,6 +12,7 @@ import { SyntaxHighlighter } from "@/components/thread/syntax-highlighter";
 
 import { TooltipIconButton } from "@/components/thread/tooltip-icon-button";
 import { cn } from "@/lib/utils";
+import { FilePathButtons } from "./file-preview";
 
 import "katex/dist/katex.min.css";
 
@@ -253,6 +254,7 @@ const MarkdownTextImpl: FC<{ children: string }> = ({ children }) => {
       >
         {children}
       </ReactMarkdown>
+      <FilePathButtons value={children} />
     </div>
   );
 };
