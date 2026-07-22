@@ -15,6 +15,8 @@ import { ThreadView } from "../agent-inbox";
 import { useQueryState, parseAsBoolean } from "nuqs";
 import { GenericInterruptView } from "./generic-interrupt";
 import { useArtifact } from "../artifact";
+import { extractReasoning } from "@/lib/extract-reasoning";
+import { ReasoningBlock } from "./reasoning";
 
 function CustomComponent({
   message,
@@ -110,6 +112,7 @@ export function AssistantMessage({
 }) {
   const content = message?.content ?? [];
   const contentString = getContentString(content);
+  const reasoning = message ? extractReasoning(message) : null;
   const [hideToolCalls] = useQueryState(
     "hideToolCalls",
     parseAsBoolean.withDefault(false),
@@ -160,6 +163,12 @@ export function AssistantMessage({
           </>
         ) : (
           <>
+            {reasoning && (
+              <ReasoningBlock
+                reasoning={reasoning}
+                defaultOpen={isLastMessage}
+              />
+            )}
             {contentString.length > 0 && (
               <div className="py-1">
                 <MarkdownText>{contentString}</MarkdownText>
