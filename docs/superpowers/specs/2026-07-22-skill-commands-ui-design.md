@@ -51,7 +51,7 @@ Related: `2026-07-22-car-deepagent-design.md`, `2026-07-22-agent-chat-ui-fronten
 ### 3.4 Skill file missing / read failure
 
 - Do not synthesize a fake tool result.
-- Fall back to treating the message as a normal user question (after optional strip is **not** applied if read failed—prefer: if resolve-by-name succeeded but file read failed, still fall back to original human text unchanged).
+- Leave the human message **unchanged** (do not strip `/name`) and continue as a normal turn.
 - Log a warning server-side; no dedicated user-facing error bubble.
 
 ### 3.5 Placement
@@ -65,7 +65,7 @@ Related: `2026-07-22-car-deepagent-design.md`, `2026-07-22-agent-chat-ui-fronten
 
 - Synthetic `read_file` appears as a normal tool call + result in the assistant turn.
 - Tool header: Chinese label (e.g. 读取文件 / 加载 Skill); highlight skill path in args.
-- Tool result: default collapsed; summary line **「已加载 skill：\<中文名\>（\<name\>）」** when path matches `/skills/<name>/SKILL.md`.
+- Tool result: default collapsed; summary line `已加载 skill：{中文名}（{name}）` when path matches `/skills/<name>/SKILL.md`.
 - Skills side panel: mark that skill **已加载** as soon as the synthetic (or real) `read_file` is in messages. Optional defensive: optimistic mark if human originally started with `/known-name` (primary path remains tool transcript).
 - No floating badge overlay on the answer.
 
