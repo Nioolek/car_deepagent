@@ -228,9 +228,6 @@ export function Thread() {
       { messages: [...toolMessages, newHumanMessage], context: artifact },
       {
         context: runContext,
-        config: runContext
-          ? { configurable: { ...runContext } }
-          : undefined,
         streamMode: ["values"],
         streamSubgraphs: true,
         streamResumable: true,
