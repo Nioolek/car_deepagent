@@ -2,7 +2,22 @@ import { AIMessage, ToolMessage } from "@langchain/langgraph-sdk";
 import { useState, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { KNOWN_SKILLS } from "@/lib/extract-loaded-skills";
+import {
+  pathFromToolArgs,
+  skillLoadSummaryFromPath,
+  toolDisplayName,
+} from "@/lib/tool-labels";
 import { FilePathButtons } from "../file-preview";
+
+function skillSummaryFromSkillMarkdown(content: unknown): string | null {
+  if (typeof content !== "string") return null;
+  const m = content.match(/^---[\s\S]*?^name:\s*([a-z0-9-]+)/m);
+  if (!m) return null;
+  const name = m[1];
+  if (!KNOWN_SKILLS.some((s) => s.name === name)) return null;
+  return skillLoadSummaryFromPath(`/skills/${name}/SKILL.md`);
+}
 
 const COLLAPSED_MAX_ENTRIES = 5;
 const COLLAPSED_MAX_CHARS = 500;
@@ -226,7 +241,16 @@ export function ToolCalls({
           >
             <div className="border-b border-gray-200 bg-gray-50 px-4 py-2">
               <h3 className="font-medium text-gray-900">
-                {tc.name}
+                {toolDisplayName(tc.name)}
+                {(() => {
+                  const path = pathFromToolArgs(tc.args);
+                  const summary = path ? skillLoadSummaryFromPath(path) : null;
+                  return summary ? (
+                    <span className="ml-2 text-sm font-normal text-indigo-700">
+                      {summary}
+                    </span>
+                  ) : null;
+                })()}
                 {tc.id && (
                   <code className="ml-2 rounded bg-gray-100 px-2 py-1 text-sm">
                     {tc.id}
@@ -272,13 +296,18 @@ export function ToolResult({ message }: { message: ToolMessage }) {
           <div className="flex flex-wrap items-center justify-between gap-2">
             {message.name ? (
               <h3 className="font-medium text-gray-900">
-                Tool Result:{" "}
-                <code className="rounded bg-gray-100 px-2 py-1">
-                  {message.name}
-                </code>
+                工具结果：{toolDisplayName(message.name)}
+                {(() => {
+                  const summary = skillSummaryFromSkillMarkdown(message.content);
+                  return summary ? (
+                    <span className="ml-2 text-sm font-normal text-indigo-700">
+                      {summary}
+                    </span>
+                  ) : null;
+                })()}
               </h3>
             ) : (
-              <h3 className="font-medium text-gray-900">Tool Result</h3>
+              <h3 className="font-medium text-gray-900">工具结果</h3>
             )}
             {message.tool_call_id && (
               <code className="ml-2 rounded bg-gray-100 px-2 py-1 text-sm">

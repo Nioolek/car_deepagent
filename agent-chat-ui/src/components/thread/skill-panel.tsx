@@ -62,8 +62,8 @@ export function SkillPanel({
       </ul>
       {loaded.length === 0 ? (
         <p className="px-4 py-3 text-xs text-slate-500">
-          Agent 通过 <code>read_file</code> 读取{" "}
-          <code>/skills/…/SKILL.md</code> 后，此处会标记为已加载。
+          Agent 通过 read_file 加载 /skills/…/SKILL.md，或使用 /skill-name
+          命令后，此处标记为已加载。
         </p>
       ) : null}
     </div>
