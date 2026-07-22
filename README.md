@@ -78,6 +78,17 @@ pnpm dev
 请总结 docs/interviews/interview_001.docx 中用户对座舱语音的评价，并给出脚注溯源。
 ```
 
+也可用 slash 强制加载 skill（命令名 = `skills/` 下目录名）：
+
+```text
+/single-report-analysis 请总结 docs/interviews/interview_001.docx 中用户对座舱语音的评价，并给出脚注溯源。
+```
+
+可用：`/single-report-analysis`、`/multi-report-synthesis`、`/user-profile-lookup`。  
+未知的 `/xxx` 会当作普通问题，不做命令处理。
+
+命令成功时，回复中会出现 `read_file` 工具卡（摘要含「已加载 skill」），Skills 面板对应项变为「已加载」。
+
 运行过程中可在界面中查看：
 
 - Skills 面板：Agent 用 `read_file` 加载 `/skills/…/SKILL.md` 后标记「已加载」
