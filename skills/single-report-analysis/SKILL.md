@@ -1,13 +1,29 @@
 ---
 name: single-report-analysis
-description: Analyze one HarmonyOS interview .docx with summary-tree tools and footnote citations.
+description: >
+  Analyze a single HarmonyOS Intelligent Mobility (鸿蒙智行) user interview
+  Word report (.docx). Use when the user asks about one interview document,
+  one doc path, NOA/智驾/座舱态度, 单篇报告分析, or footnote-cited findings
+  from a single report.
+license: MIT
+metadata:
+  version: "1.0"
+  domain: interview-analysis
 ---
 
 # Single report analysis
 
-1. `write_todos` for plan steps.
-2. `ensure_document_markdown` then `ensure_summary_tree`.
-3. Prefer `task` → `report_analyst` for the heavy read.
-4. Use chapter summaries first; `get_chapter_excerpt` only for evidence.
-5. Final answer MUST use inline footnotes like `[^interview_001§2]` and an end section `## 参考文献摘录`.
+## When to Use
+
+- User provides **one** `.docx` interview path
+- Questions about a single interviewee's attitudes (NOA, 座舱, OTA, NPS, etc.)
+- Requests for footnoted analysis of one report
+
+## Instructions
+
+1. Call `write_todos` to plan steps.
+2. `ensure_document_markdown` then `ensure_summary_tree` for the document.
+3. Prefer `task` → `report_analyst` for heavy reading so the parent context stays small.
+4. Use chapter summaries first; call `get_chapter_excerpt` only for citation evidence.
+5. Final answer MUST include inline footnotes like `[^interview_001§2]` and an end section `## 参考文献摘录`.
 6. Never paste the full report into the parent context.

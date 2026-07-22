@@ -46,6 +46,7 @@ import {
   useArtifactContext,
 } from "./artifact";
 import { TodoPanel } from "./todo-panel";
+import { SkillPanel } from "./skill-panel";
 import { FilePreviewProvider } from "./file-preview";
 
 function StickyToBottomContent(props: {
@@ -392,7 +393,10 @@ export function Thread() {
               </div>
             )}
 
-            <TodoPanel variant="mobile" />
+            <div className="flex flex-col gap-2 lg:hidden">
+              <SkillPanel variant="mobile" />
+              <TodoPanel variant="mobile" />
+            </div>
 
             <StickToBottom className="relative flex-1 overflow-hidden">
               <StickyToBottomContent
@@ -565,7 +569,10 @@ export function Thread() {
             </div>
           </div>
         </div>
-        <TodoPanel />
+        <div className="hidden h-full shrink-0 flex-col gap-3 lg:flex">
+          <SkillPanel />
+          <TodoPanel />
+        </div>
       </div>
     </FilePreviewProvider>
   );
