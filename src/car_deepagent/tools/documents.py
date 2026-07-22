@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -21,6 +22,18 @@ def _doc_id_error(doc_id: str) -> str | None:
 
 def doc_id_for_path(path: str | Path) -> str:
     return Path(path).stem
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as file:
+        for chunk in iter(lambda: file.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _markdown_metadata_path(markdown_path: Path) -> Path:
+    return markdown_path.with_suffix(".md.meta.json")
 
 
 def _docx_to_markdown(path: Path) -> str:
@@ -51,16 +64,42 @@ def ensure_document_markdown(path: str) -> str:
         return json.dumps({"error": f"Not a .docx file: {path}"}, ensure_ascii=False)
     doc_id = doc_id_for_path(src)
     out = markdown_cache_dir() / f"{doc_id}.md"
-    if not out.exists():
+    metadata_path = _markdown_metadata_path(out)
+    source_path = str(src.resolve())
+    source_sha256 = _sha256_file(src)
+    cache_valid = False
+    if out.exists() and metadata_path.exists():
+        try:
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            cache_valid = (
+                metadata.get("source_path") == source_path
+                and metadata.get("source_sha256") == source_sha256
+            )
+        except (OSError, json.JSONDecodeError):
+            cache_valid = False
+    if not cache_valid:
         md = _docx_to_markdown(src)
+        out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(md, encoding="utf-8")
+        metadata_path.write_text(
+            json.dumps(
+                {
+                    "source_path": source_path,
+                    "source_sha256": source_sha256,
+                },
+                ensure_ascii=False,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
     text = out.read_text(encoding="utf-8")
     return json.dumps(
         {
             "doc_id": doc_id,
             "markdown_path": str(out),
             "chars": len(text),
-            "source_path": str(src.resolve()),
+            "source_path": source_path,
+            "source_sha256": source_sha256,
         },
         ensure_ascii=False,
     )
@@ -120,22 +159,22 @@ def _chapter_map(doc_id: str) -> dict[str, dict]:
 
 
 def _summarize_chapter(chapter: dict) -> str:
-    try:
-        response = build_chat_model().invoke(
-            [
-                {
-                    "role": "system",
-                    "content": "请将访谈章节概括为简短、准确的中文摘要。",
-                },
-                {
-                    "role": "user",
-                    "content": f"章节：{chapter['title']}\n\n{chapter['text']}",
-                },
-            ]
-        )
-        return str(response.content)
-    except Exception:
-        return f"[fallback]{chapter['text'][:200]}"
+    response = build_chat_model().invoke(
+        [
+            {
+                "role": "system",
+                "content": "请将访谈章节概括为简短、准确的中文摘要。",
+            },
+            {
+                "role": "user",
+                "content": f"章节：{chapter['title']}\n\n{chapter['text']}",
+            },
+        ]
+    )
+    summary = str(response.content).strip()
+    if not summary:
+        raise ValueError("Model returned an empty chapter summary")
+    return summary
 
 
 @tool
@@ -144,13 +183,6 @@ def ensure_summary_tree(doc_id: str) -> str:
     if err := _doc_id_error(doc_id):
         return err
     tree_path = _tree_path(doc_id)
-    if tree_path.exists():
-        tree = json.loads(tree_path.read_text(encoding="utf-8"))
-        return json.dumps(
-            {**tree, "cached": True, "tree_path": str(tree_path)},
-            ensure_ascii=False,
-        )
-
     markdown_path = markdown_cache_dir() / f"{doc_id}.md"
     if not markdown_path.exists():
         return json.dumps(
@@ -158,18 +190,50 @@ def ensure_summary_tree(doc_id: str) -> str:
             ensure_ascii=False,
         )
 
-    chapters = split_chapters(markdown_path.read_text(encoding="utf-8"))
-    tree = {
-        "doc_id": doc_id,
-        "chapters": [
+    markdown = markdown_path.read_text(encoding="utf-8")
+    markdown_sha256 = hashlib.sha256(markdown.encode("utf-8")).hexdigest()
+    if tree_path.exists():
+        try:
+            tree = json.loads(tree_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            tree = {}
+        if tree.get("markdown_sha256") == markdown_sha256:
+            return json.dumps(
+                {**tree, "cached": True, "tree_path": str(tree_path)},
+                ensure_ascii=False,
+            )
+        tree_path.unlink(missing_ok=True)
+
+    chapters = split_chapters(markdown)
+    summarized_chapters = []
+    for chapter in chapters:
+        try:
+            summary = _summarize_chapter(chapter)
+        except Exception as exc:
+            tree_path.unlink(missing_ok=True)
+            return json.dumps(
+                {
+                    "error": f"Chapter summary failed: {exc}",
+                    "doc_id": doc_id,
+                    "chapter_id": chapter["chapter_id"],
+                    "title": chapter["title"],
+                    "error_type": type(exc).__name__,
+                },
+                ensure_ascii=False,
+            )
+        summarized_chapters.append(
             {
                 "chapter_id": chapter["chapter_id"],
                 "title": chapter["title"],
-                "summary": _summarize_chapter(chapter),
+                "summary": summary,
                 "char_count": len(chapter["text"]),
             }
-            for chapter in chapters
-        ],
+        )
+
+    tree = {
+        "doc_id": doc_id,
+        "markdown_sha256": markdown_sha256,
+        "chapters": summarized_chapters,
     }
     tree_path.parent.mkdir(parents=True, exist_ok=True)
     tree_path.write_text(

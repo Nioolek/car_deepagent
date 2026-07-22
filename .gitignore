@@ -10,3 +10,4 @@ workspace/cache/
 .DS_Store
 .worktrees/
 .superpowers/
+*.egg-info/
