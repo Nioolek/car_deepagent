@@ -54,8 +54,7 @@ cp /home/admin/sha/.env .env
 **终端 1 — LangGraph agent 服务：**
 
 ```bash
-# 首次启动需补齐本地 in-memory API runtime
-uv pip install "langgraph-cli[inmem]>=0.2.0"
+uv sync --extra dev
 uv run langgraph dev
 ```
 
