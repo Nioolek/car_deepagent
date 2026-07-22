@@ -80,6 +80,7 @@ pnpm dev
 
 运行过程中可在界面中查看：
 
+- Skills 面板：Agent 用 `read_file` 加载 `/skills/…/SKILL.md` 后标记「已加载」
 - agent 的 todo 列表及状态更新
 - 工具调用参数与工具结果
 - 模型 thinking / reasoning 内容
