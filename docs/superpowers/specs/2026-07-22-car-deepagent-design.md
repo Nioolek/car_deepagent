@@ -40,7 +40,7 @@ Input: { messages, doc_paths[] }
 │ - skills (progressive disclosure)       │
 │ - get_user_profile                      │
 │ - doc tools (docx→md, summary tree)     │
-│ - token estimate / compact helpers      │
+│ - token estimate (built-in summarization for compact) │
 │ - task → report_analyst (parallel OK)   │
 │ - built-in summarization / offloading   │
 └─────────────────────────────────────────┘
