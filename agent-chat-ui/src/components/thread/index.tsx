@@ -500,7 +500,7 @@ export function Thread() {
                                 htmlFor="render-tool-calls"
                                 className="text-sm text-gray-600"
                               >
-                                Hide Tool Calls
+                                隐藏工具调用
                               </Label>
                             </div>
                           </div>
