@@ -1,0 +1,7 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "agent": "./src/car_deepagent/graph.py:graph"
+  },
+  "env": ".env"
+}

@@ -18,7 +18,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0.0"]
+dev = ["pytest>=8.0.0", "langgraph-cli>=0.2.0"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

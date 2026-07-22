@@ -47,9 +47,33 @@ cp .env.example .env
 cp /home/admin/sha/.env .env
 ```
 
-## 3. 启动 / 本地调试（推荐）
+## 3. 启动 Agent Chat UI（双终端）
 
-项目没有独立 Web 前端。本地启动方式是加载 graph 并流式运行：
+前端位于 `agent-chat-ui/`（Next.js）。本地开发需同时启动 LangGraph 开发服务器与 Next.js：
+
+**终端 1 — LangGraph agent 服务：**
+
+```bash
+uv sync --extra dev
+uv run langgraph dev
+```
+
+默认监听 `http://127.0.0.1:2024`，图 ID 为 `agent`（见根目录 `langgraph.json`）。
+
+**终端 2 — Next.js 前端：**
+
+```bash
+cd agent-chat-ui
+pnpm install
+cp .env.example .env.local   # 按需填写 LANGGRAPH_API_URL 等
+pnpm dev
+```
+
+浏览器打开 `http://localhost:3000`。前端通过 LangGraph SDK 连接终端 1 的 API。
+
+## 4. 启动 / 本地调试（无 UI，推荐脚本）
+
+本地也可直接加载 graph 并流式运行（不启动 Web UI）：
 
 ```bash
 # 单篇报告分析（默认）
@@ -75,7 +99,7 @@ uv run python scripts/smoke_astream.py --mode profile
 - 最终回答含 `[^interview_xxx§n]` 脚注与 `## 参考文献摘录`
 - 摘要树缓存写入 `workspace/cache/summary_trees/`（已 gitignore）
 
-## 4. 自定义问题（Python）
+## 5. 自定义问题（Python）
 
 ```python
 import asyncio
@@ -99,7 +123,7 @@ asyncio.run(main())
 
 多轮对话：保持相同 `thread_id`，继续向 `messages` 追加用户问题即可。
 
-## 5. LangGraph API / Runtime 挂载
+## 6. LangGraph API / Runtime 挂载
 
 导出入口：
 
@@ -109,7 +133,7 @@ car_deepagent.graph:graph
 
 按你的 LangGraph Runtime / `langgraph.json` 配置将该模块图挂上即可；本地开发仍优先用上一节的 `astream`。
 
-## 6. 测试
+## 7. 测试
 
 ```bash
 uv run pytest -v
