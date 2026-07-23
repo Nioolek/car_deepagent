@@ -43,6 +43,10 @@ def test_wrap_model_call_appends_instruction():
     assert "base prompt" in system.content
     assert "docs/interviews/interview_001.md" in system.content
     assert "只能分析" in system.content or "仅允许" in system.content
+    assert "recommendation=" in system.content
+    assert "lines=" in system.content
+    assert "chars=" in system.content
+    assert "可跳过 inspect_document" in system.content
 
 
 def test_wrap_tool_call_blocks_out_of_list_path():

@@ -16,6 +16,7 @@ from car_deepagent.analysis_docs import (
     extract_analysis_doc_paths,
     normalize_doc_path,
 )
+from car_deepagent.tools.documents import volume_summary_for_path
 
 _DOC_PATH_TOOLS = frozenset({"inspect_document"})
 _DOC_ID_TOOLS = frozenset(
@@ -47,12 +48,27 @@ def _paths_from_runtime(runtime: Any) -> list[str]:
 
 
 def _instruction_block(paths: list[str]) -> str:
-    bullets = "\n".join(f"- {path}" for path in paths)
+    bullets: list[str] = []
+    for path in paths:
+        summary = volume_summary_for_path(path)
+        if summary is None:
+            bullets.append(f"- {path}")
+            continue
+        bullets.append(
+            f"- {path} | doc_id={summary['doc_id']} | "
+            f"lines={summary['lines']} | chars={summary['chars']} | "
+            f"recommendation={summary['recommendation']} | "
+            f"source_path={summary['source_path']}"
+        )
+    body = "\n".join(bullets)
     return (
         "本轮用户已在界面选择分析文档。你必须且只能分析下列路径对应的访谈报告，"
         "不要打开或引用列表之外的访谈文件：\n"
-        f"{bullets}\n"
-        "调用 inspect_document 时使用上述路径或 doc_id；"
+        f"{body}\n"
+        "上列已包含体量与 recommendation（与 inspect_document 一致）。"
+        "若 recommendation 已给出，可跳过 inspect_document，直接按 "
+        "direct_read（主 agent 分页 read_file）或 delegate（task(report_analyst)）执行；"
+        "仅在需要复核体量时再调用 inspect_document。\n"
         "load_doc_map、save_doc_map 的 doc_id 必须是这些文件的文件名（不含扩展名）；"
         "文档地图记录原文行号，用 read_file 读原文时只允许 "
         "`/docs/interviews/<上述 doc_id>.md`，"

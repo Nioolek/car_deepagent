@@ -50,6 +50,21 @@ def test_inspect_document_on_interview_markdown(tmp_path, monkeypatch):
     assert data["thresholds"]["max_chars_direct"] == 15000
 
 
+def test_volume_summary_for_path_matches_inspect(tmp_path, monkeypatch):
+    interviews = _patch_interview_dirs(tmp_path, monkeypatch)
+    (interviews / "interview_t.md").write_text("短文\n第二行\n", encoding="utf-8")
+    summary = docs.volume_summary_for_path("interview_t")
+    assert summary is not None
+    assert summary["doc_id"] == "interview_t"
+    assert summary["lines"] == 2
+    assert summary["recommendation"] == "direct_read"
+    raw = docs.inspect_document.invoke({"path": "interview_t"})
+    data = json.loads(raw)
+    assert data["lines"] == summary["lines"]
+    assert data["chars"] == summary["chars"]
+    assert data["recommendation"] == summary["recommendation"]
+
+
 def test_inspect_document_accepts_virtual_fs_path():
     raw = docs.inspect_document.invoke(
         {"path": "/docs/interviews/interview_001.md"}
@@ -58,3 +73,13 @@ def test_inspect_document_accepts_virtual_fs_path():
     assert data["doc_id"] == "interview_001"
     assert data["source_path"] == "/docs/interviews/interview_001.md"
     assert "error" not in data
+
+
+def test_inspect_document_interview_not_found(tmp_path, monkeypatch):
+    _patch_interview_dirs(tmp_path, monkeypatch)
+
+    raw = docs.inspect_document.invoke({"path": "no_such_interview"})
+    data = json.loads(raw)
+    assert "error" in data
+    assert "Interview document not found" in data["error"]
+    assert "no_such_interview" in data["error"]

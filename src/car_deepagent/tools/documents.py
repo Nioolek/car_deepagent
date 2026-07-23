@@ -9,6 +9,7 @@ from langchain_core.tools import tool
 
 from car_deepagent.analysis_docs import (
     interview_virtual_path,
+    normalize_doc_path,
     resolve_interview_file,
     search_interview_docs,
 )
@@ -53,6 +54,28 @@ def recommendation_for_volume(lines: int, chars: int) -> str:
     return "direct_read"
 
 
+def volume_summary_for_path(path: str) -> dict | None:
+    """Return inspect-like volume fields for a resolvable interview path."""
+    doc_id, source_path = _resolve_source_markdown(path)
+    if doc_id is None or source_path is None:
+        return None
+    text = source_path.read_text(encoding="utf-8")
+    volume = count_text_volume(text)
+    recommendation = recommendation_for_volume(volume["lines"], volume["chars"])
+    virtual = interview_virtual_path(doc_id)
+    return {
+        "doc_id": doc_id,
+        "path": normalize_doc_path(path) or normalize_doc_path(doc_id),
+        "source_path": virtual,
+        **volume,
+        "recommendation": recommendation,
+        "thresholds": {
+            "max_lines_direct": MAX_LINES_DIRECT,
+            "max_chars_direct": MAX_CHARS_DIRECT,
+        },
+    }
+
+
 def _resolve_source_markdown(path: str) -> tuple[str, Path] | tuple[None, None]:
     """Return (doc_id, absolute .md path) under docs/interviews."""
     resolved = resolve_interview_file(path)
@@ -88,8 +111,8 @@ def list_interview_docs(query: str = "") -> str:
 @tool
 def inspect_document(path: str) -> str:
     """Measure interview markdown volume and recommend direct_read vs delegate."""
-    doc_id, source_path = _resolve_source_markdown(path)
-    if doc_id is None or source_path is None:
+    summary = volume_summary_for_path(path)
+    if summary is None:
         return json.dumps(
             {
                 "error": (
@@ -98,25 +121,20 @@ def inspect_document(path: str) -> str:
             },
             ensure_ascii=False,
         )
-
-    text = source_path.read_text(encoding="utf-8")
-    volume = count_text_volume(text)
-    recommendation = recommendation_for_volume(volume["lines"], volume["chars"])
-    virtual = interview_virtual_path(doc_id)
-    return json.dumps(
-        {
-            "doc_id": doc_id,
-            "source_path": virtual,
-            "markdown_path": virtual,
-            **volume,
-            "recommendation": recommendation,
-            "thresholds": {
-                "max_lines_direct": MAX_LINES_DIRECT,
-                "max_chars_direct": MAX_CHARS_DIRECT,
-            },
-        },
-        ensure_ascii=False,
-    )
+    # Keep tool payload aligned with historical inspect_document fields.
+    payload = {
+        "doc_id": summary["doc_id"],
+        "source_path": summary["source_path"],
+        "markdown_path": summary["source_path"],
+        "lines": summary["lines"],
+        "chars": summary["chars"],
+        "chars_cjk": summary["chars_cjk"],
+        "chars_latin": summary["chars_latin"],
+        "chars_other": summary["chars_other"],
+        "recommendation": summary["recommendation"],
+        "thresholds": summary["thresholds"],
+    }
+    return json.dumps(payload, ensure_ascii=False)
 
 
 def _doc_map_path(doc_id: str) -> Path:
