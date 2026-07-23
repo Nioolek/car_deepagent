@@ -19,6 +19,6 @@ metadata:
 
 1. `write_todos`: one item per document + a final synthesis step.
 2. Issue multiple `task(report_analyst)` calls in one turn when possible (parallel).
-3. Synthesize contrasts and agreements; keep per-document footnotes (`[^doc§chapter]`).
+3. Synthesize contrasts and agreements; keep per-document line footnotes (`[^doc§L123]` or `[^doc§L100-L150]`).
 4. Optionally call `get_user_profile` when a user identity is known.
 5. End with `## 参考文献摘录` covering all cited docs.

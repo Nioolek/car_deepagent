@@ -2,7 +2,7 @@
 
 基于 [Deep Agents](https://github.com/langchain-ai/deepagents) / LangGraph 的鸿蒙智行用户访谈报告分析智能体。
 
-支持：单篇/多篇 Word 报告问答、用户画像交叉验证、摘要树长文处理、脚注溯源、todo 规划、skills。V1 只交付可编译的 `graph`，本地用 `astream` 调试；后续可挂 LangGraph API / Runtime。
+支持：单篇/多篇 Word 报告问答、用户画像交叉验证、文档地图长文处理、脚注溯源、todo 规划、skills。V1 只交付可编译的 `graph`，本地用 `astream` 调试；后续可挂 LangGraph API / Runtime。
 
 ## 环境要求
 
@@ -123,9 +123,11 @@ uv run python scripts/smoke_astream.py --mode profile
 
 预期现象：
 
-- 流式输出中出现工具调用（如 `ensure_document_markdown`、`ensure_summary_tree`、`task` / `get_user_profile`）
-- 最终回答含 `[^interview_xxx§n]` 脚注与 `## 参考文献摘录`
-- 摘要树缓存写入 `workspace/cache/summary_trees/`（已 gitignore）
+- 流式输出中出现工具调用（如 `ensure_document_markdown`、`inspect_document`、`load_doc_map`、`task` / `get_user_profile`）
+- 最终回答含 `[^interview_xxx§L123]` 或 `[^interview_xxx§L100-L150]` 脚注与 `## 参考文献摘录`
+- 文档地图缓存写入 `workspace/cache/doc_maps/`（已 gitignore）
+
+脚注中的 `L` 表示缓存 Markdown 的 1-based 原文行号；范围脚注表示引用连续行，文末摘录应与该行号范围对应。
 
 ## 5. 自定义问题（Python）
 

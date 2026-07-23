@@ -85,13 +85,12 @@ def test_main_prompt_does_not_duplicate_skills_loading():
 
     prompt = graph_mod.MAIN_PROMPT
     assert "Skills System" not in prompt
-    assert "read_file" not in prompt
     assert "/skills/<skill-name>/SKILL.md" not in prompt
     assert "limit=1000" not in prompt
     # Domain rules remain
     assert "report_analyst" in prompt
     assert "get_user_profile" in prompt
-    assert "[^doc§chapter]" in prompt
+    assert "[^doc§L123]" in prompt
 
 
 def test_skills_source_is_labeled_project_tuple():

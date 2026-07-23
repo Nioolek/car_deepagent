@@ -16,15 +16,15 @@ from car_deepagent.analysis_docs import (
     normalize_doc_path,
 )
 
-_DOC_PATH_TOOLS = frozenset({"ensure_document_markdown"})
+_DOC_PATH_TOOLS = frozenset({"ensure_document_markdown", "inspect_document"})
 _DOC_ID_TOOLS = frozenset(
     {
-        "ensure_summary_tree",
-        "get_chapter_summary",
+        "load_doc_map",
+        "save_doc_map",
     }
 )
 _MARKDOWN_CACHE_RE = re.compile(r"^/workspace/cache/markdown/([^/]+)\.md$")
-_SUMMARY_TREE_RE = re.compile(r"^/workspace/cache/summary_trees/([^/]+)\.json$")
+_DOC_MAP_RE = re.compile(r"^/workspace/cache/doc_maps/([^/]+)\.json$")
 
 
 def _paths_from_runtime(runtime: Any) -> list[str]:
@@ -39,10 +39,11 @@ def _instruction_block(paths: list[str]) -> str:
         "本轮用户已在界面选择分析文档。你必须且只能分析下列路径对应的访谈报告，"
         "不要打开或引用列表之外的访谈文件：\n"
         f"{bullets}\n"
-        "调用 ensure_document_markdown 时使用上述路径；"
-        "摘要树相关工具的 doc_id 必须是这些文件的文件名（不含扩展名）；"
-        "用 read_file 读原文时只允许 "
-        "`/workspace/cache/markdown/<上述 doc_id>.md`。"
+        "调用 ensure_document_markdown、inspect_document 时使用上述路径或 doc_id；"
+        "load_doc_map、save_doc_map 的 doc_id 必须是这些文件的文件名（不含扩展名）；"
+        "文档地图记录原文行号，用 read_file 读原文时只允许 "
+        "`/workspace/cache/markdown/<上述 doc_id>.md`，"
+        "引用必须使用 [^doc_id§L123] 或 [^doc_id§L100-L150] 行号脚注。"
     )
 
 
@@ -89,13 +90,13 @@ def _deny_read_file_if_needed(
             )
         return None
 
-    tree_match = _SUMMARY_TREE_RE.match(posix)
-    if tree_match:
-        doc_id = tree_match.group(1)
+    map_match = _DOC_MAP_RE.match(posix)
+    if map_match:
+        doc_id = map_match.group(1)
         if doc_id not in allowed:
             return _denied_tool_message(
                 request,
-                "summary tree 不在本轮选择的分析文档列表中："
+                "doc map 不在本轮选择的分析文档列表中："
                 f"{doc_id}；允许：{', '.join(sorted(allowed))}",
             )
         return None
@@ -190,7 +191,7 @@ class AnalysisDocPathsMiddleware(AgentMiddleware):
             if not isinstance(raw_path, str):
                 return _denied_tool_message(
                     request,
-                    "本轮已选择分析文档，ensure_document_markdown 需要 path 参数。",
+                    f"本轮已选择分析文档，{name} 需要 path 参数。",
                 )
             normalized = normalize_doc_path(raw_path)
             if normalized is None or normalized not in paths:

@@ -1,13 +1,23 @@
 from __future__ import annotations
 
 from car_deepagent.middleware.analysis_docs import AnalysisDocPathsMiddleware
-from car_deepagent.tools.documents import ensure_document_markdown
+from car_deepagent.tools.documents import (
+    ensure_document_markdown,
+    inspect_document,
+    load_doc_map,
+    save_doc_map,
+)
 from car_deepagent.tools.tokens import estimate_tokens
 
-REPORT_ANALYST_PROMPT = """你是单篇鸿蒙智行用户访谈分析子代理。
-流程：ensure_document_markdown → ensure_summary_tree → 阅读相关章节摘要 → 必要时用 read_file 按行读取 /workspace/cache/markdown/<doc_id>.md 取原文证据。
-输出必须包含行内脚注 [^doc_id§chapter_id]，并在末尾给出参考文献摘录。
-不要把全文塞进回复；只返回结构化分析结论。
+REPORT_ANALYST_PROMPT = """你是单篇访谈文档分析子代理（无结构 markdown 友好）。
+Workflow（必须按序）：
+1. ensure_document_markdown（如尚未转换）→ inspect_document → load_doc_map。
+2. 若 load_doc_map.cached=true：基于地图回答用户问题；需要原文时用 read_file(offset=行号-1, limit=...) 或 grep。
+3. 若无缓存：用 read_file 分页阅读（limit=150~200），自建 sections（start_line/end_line 为 read_file 显示的 1-based 行号）与 highlights。
+4. findings 使用脚注 [^doc_id§L123] 或 [^doc_id§L100-L150]，并给 references 摘录。
+5. save_doc_map 只保存 sections+highlights（不要把整份 findings 塞进缓存）。
+6. 最终回复必须是一个 JSON 对象，字段：doc_id, markdown_path, sections, highlights, findings, references。
+禁止把全文一次性读进回复。
 """
 
 
@@ -15,12 +25,15 @@ def build_report_analyst_subagent() -> dict:
     return {
         "name": "report_analyst",
         "description": (
-            "Analyze one interview .docx using summary-tree tools and return "
-            "footnoted findings for the parent agent."
+            "Analyze one interview document with a provenance line map and return "
+            "structured, line-footnoted findings for the parent agent."
         ),
         "system_prompt": REPORT_ANALYST_PROMPT,
         "tools": [
             ensure_document_markdown,
+            inspect_document,
+            load_doc_map,
+            save_doc_map,
             estimate_tokens,
         ],
         "middleware": [AnalysisDocPathsMiddleware()],
