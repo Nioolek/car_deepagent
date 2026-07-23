@@ -56,12 +56,9 @@ def test_ensure_summary_tree_builds_once(tmp_path, monkeypatch):
         )
     )
     assert summary["summary"] == "章节摘要"
-    excerpt = json.loads(
-        docs.get_chapter_excerpt.invoke(
-            {"doc_id": "interview_t", "chapter_id": "2", "offset": 0, "limit": 40}
-        )
-    )
-    assert "NOA" in excerpt["excerpt"] or "雨天" in excerpt["excerpt"]
+    # Citation evidence comes from line-based read_file on the markdown cache.
+    markdown = (tmp_path / "md" / "interview_t.md").read_text(encoding="utf-8")
+    assert "NOA" in markdown or "雨天" in markdown
 
 
 def test_ensure_summary_tree_does_not_cache_model_failure(tmp_path, monkeypatch):
@@ -149,10 +146,6 @@ def test_invalid_doc_id_rejected(tmp_path, monkeypatch):
     for tool, args in (
         (docs.ensure_summary_tree, {"doc_id": invalid}),
         (docs.get_chapter_summary, {"doc_id": invalid, "chapter_id": "1"}),
-        (
-            docs.get_chapter_excerpt,
-            {"doc_id": invalid, "chapter_id": "1", "offset": 0, "limit": 40},
-        ),
     ):
         data = json.loads(tool.invoke(args))
         assert "error" in data

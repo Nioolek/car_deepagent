@@ -20,7 +20,6 @@ _DOC_ID_TOOLS = frozenset(
     {
         "ensure_summary_tree",
         "get_chapter_summary",
-        "get_chapter_excerpt",
     }
 )
 

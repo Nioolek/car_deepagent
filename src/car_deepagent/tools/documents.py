@@ -159,16 +159,6 @@ def _tree_path(doc_id: str) -> Path:
     return summary_trees_dir() / f"{doc_id}.json"
 
 
-def _chapter_map(doc_id: str) -> dict[str, dict]:
-    if _doc_id_error(doc_id) is not None:
-        raise ValueError(f"Invalid doc_id: {doc_id}")
-    markdown_path = markdown_cache_dir() / f"{doc_id}.md"
-    if not markdown_path.exists():
-        return {}
-    chapters = split_chapters(markdown_path.read_text(encoding="utf-8"))
-    return {chapter["chapter_id"]: chapter for chapter in chapters}
-
-
 def _summarize_chapter(chapter: dict) -> str:
     response = build_chat_model().invoke(
         [
@@ -284,34 +274,5 @@ def get_chapter_summary(doc_id: str, chapter_id: str) -> str:
         )
     return json.dumps(
         {"doc_id": doc_id, **chapter},
-        ensure_ascii=False,
-    )
-
-
-@tool
-def get_chapter_excerpt(
-    doc_id: str, chapter_id: str, offset: int = 0, limit: int = 800
-) -> str:
-    """Return a slice of original chapter text with its citation key."""
-    if err := _doc_id_error(doc_id):
-        return err
-    chapter = _chapter_map(doc_id).get(chapter_id)
-    if chapter is None:
-        return json.dumps(
-            {"error": f"Chapter not found: {chapter_id}"},
-            ensure_ascii=False,
-        )
-    start = max(0, offset)
-    excerpt = chapter["text"][start : start + max(0, limit)]
-    return json.dumps(
-        {
-            "doc_id": doc_id,
-            "chapter_id": chapter_id,
-            "title": chapter["title"],
-            "offset": start,
-            "limit": max(0, limit),
-            "excerpt": excerpt,
-            "citation_key": f"[^{doc_id}§{chapter_id}]",
-        },
         ensure_ascii=False,
     )

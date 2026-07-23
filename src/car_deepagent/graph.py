@@ -21,7 +21,6 @@ from car_deepagent.subagents.report_analyst import build_report_analyst_subagent
 from car_deepagent.tools.documents import (
     ensure_document_markdown,
     ensure_summary_tree,
-    get_chapter_excerpt,
     get_chapter_summary,
 )
 from car_deepagent.tools.tokens import estimate_tokens
@@ -72,7 +71,6 @@ def build_graph():
             ensure_document_markdown,
             ensure_summary_tree,
             get_chapter_summary,
-            get_chapter_excerpt,
             estimate_tokens,
         ],
         system_prompt=MAIN_PROMPT,

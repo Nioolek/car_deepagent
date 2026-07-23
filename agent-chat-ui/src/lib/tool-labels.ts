@@ -14,7 +14,6 @@ const TOOL_LABELS: Record<string, string> = {
   ensure_document_markdown: "转换文档",
   ensure_summary_tree: "构建摘要树",
   get_chapter_summary: "章节摘要",
-  get_chapter_excerpt: "章节摘录",
   get_user_profile: "用户画像",
   estimate_tokens: "估算 Token",
 };
