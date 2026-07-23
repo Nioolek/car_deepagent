@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-from car_deepagent.tools.documents import (
-    ensure_document_markdown,
-    ensure_summary_tree,
-    get_chapter_summary,
-)
+from car_deepagent.middleware.analysis_docs import AnalysisDocPathsMiddleware
+from car_deepagent.tools.documents import ensure_document_markdown
 from car_deepagent.tools.tokens import estimate_tokens
 
 REPORT_ANALYST_PROMPT = """你是单篇鸿蒙智行用户访谈分析子代理。
@@ -24,8 +21,7 @@ def build_report_analyst_subagent() -> dict:
         "system_prompt": REPORT_ANALYST_PROMPT,
         "tools": [
             ensure_document_markdown,
-            ensure_summary_tree,
-            get_chapter_summary,
             estimate_tokens,
         ],
+        "middleware": [AnalysisDocPathsMiddleware()],
     }

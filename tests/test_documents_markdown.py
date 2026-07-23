@@ -48,3 +48,39 @@ def test_ensure_document_markdown_missing_file():
     raw = ensure_document_markdown.invoke({"path": "/no/such/file.docx"})
     data = json.loads(raw)
     assert "error" in data
+
+
+def test_source_change_rebuilds_markdown(tmp_path, monkeypatch):
+    interviews = tmp_path / "docs" / "interviews"
+    interviews.mkdir(parents=True)
+    monkeypatch.setattr(documents_mod, "markdown_cache_dir", lambda: tmp_path / "md")
+    monkeypatch.setattr(
+        "car_deepagent.analysis_docs.interviews_dir",
+        lambda: interviews,
+    )
+    monkeypatch.setattr(
+        "car_deepagent.analysis_docs.repo_root",
+        lambda: tmp_path,
+    )
+    (tmp_path / "md").mkdir()
+    src = interviews / "interview_t.docx"
+
+    def write_docx(body: str) -> None:
+        document = Document()
+        document.add_heading("背景", level=1)
+        document.add_paragraph(body)
+        document.save(src)
+
+    write_docx("第一版内容")
+    markdown_1 = json.loads(
+        ensure_document_markdown.invoke({"path": "interview_t"})
+    )
+    write_docx("第二版完全不同的内容")
+    markdown_2 = json.loads(
+        ensure_document_markdown.invoke({"path": "interview_t"})
+    )
+
+    assert Path(markdown_2["markdown_path"]).read_text(encoding="utf-8").find(
+        "第二版完全不同的内容"
+    ) >= 0
+    assert markdown_1["source_sha256"] != markdown_2["source_sha256"]

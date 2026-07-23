@@ -9,8 +9,7 @@ from docx import Document
 from langchain_core.tools import tool
 
 from car_deepagent.analysis_docs import resolve_interview_file
-from car_deepagent.config import build_chat_model
-from car_deepagent.paths import doc_maps_dir, markdown_cache_dir, summary_trees_dir
+from car_deepagent.paths import doc_maps_dir, markdown_cache_dir
 
 MAX_LINES_DIRECT = 500
 MAX_CHARS_DIRECT = 15000
@@ -208,43 +207,6 @@ def inspect_document(path: str) -> str:
     )
 
 
-def split_chapters(markdown: str) -> list[dict]:
-    heading_re = re.compile(r"^(#{1,3})\s+(.*)$")
-    chapters: list[dict] = []
-    title = None
-    buf: list[str] = []
-
-    def flush() -> None:
-        nonlocal title, buf
-        if title is None and not any(line.strip() for line in buf):
-            buf = []
-            return
-        text = "\n".join(buf).strip()
-        if title is None:
-            title = "全文"
-        if text:
-            chapters.append(
-                {
-                    "chapter_id": str(len(chapters) + 1),
-                    "title": title,
-                    "text": text,
-                }
-            )
-        title = None
-        buf = []
-
-    for line in markdown.splitlines():
-        match = heading_re.match(line.strip())
-        if match:
-            flush()
-            title = match.group(2).strip()
-            buf = []
-        else:
-            buf.append(line)
-    flush()
-    return chapters
-
-
 def _doc_map_path(doc_id: str) -> Path:
     if _doc_id_error(doc_id) is not None:
         raise ValueError(f"Invalid doc_id: {doc_id}")
@@ -324,130 +286,5 @@ def load_doc_map(doc_id: str) -> str:
         )
     return json.dumps(
         {**stored, "cached": True, "map_path": str(map_path)},
-        ensure_ascii=False,
-    )
-
-
-def _tree_path(doc_id: str) -> Path:
-    if _doc_id_error(doc_id) is not None:
-        raise ValueError(f"Invalid doc_id: {doc_id}")
-    return summary_trees_dir() / f"{doc_id}.json"
-
-
-def _summarize_chapter(chapter: dict) -> str:
-    response = build_chat_model().invoke(
-        [
-            {
-                "role": "system",
-                "content": "请将访谈章节概括为简短、准确的中文摘要。",
-            },
-            {
-                "role": "user",
-                "content": f"章节：{chapter['title']}\n\n{chapter['text']}",
-            },
-        ]
-    )
-    summary = str(response.content).strip()
-    if not summary:
-        raise ValueError("Model returned an empty chapter summary")
-    return summary
-
-
-@tool
-def ensure_summary_tree(doc_id: str) -> str:
-    """Build and cache chapter summaries for a cached markdown document."""
-    if err := _doc_id_error(doc_id):
-        return err
-    tree_path = _tree_path(doc_id)
-    markdown_path = markdown_cache_dir() / f"{doc_id}.md"
-    if not markdown_path.exists():
-        return json.dumps(
-            {"error": f"Markdown not found for doc_id: {doc_id}"},
-            ensure_ascii=False,
-        )
-
-    markdown = markdown_path.read_text(encoding="utf-8")
-    markdown_sha256 = hashlib.sha256(markdown.encode("utf-8")).hexdigest()
-    if tree_path.exists():
-        try:
-            tree = json.loads(tree_path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            tree = {}
-        if tree.get("markdown_sha256") == markdown_sha256:
-            return json.dumps(
-                {**tree, "cached": True, "tree_path": str(tree_path)},
-                ensure_ascii=False,
-            )
-        tree_path.unlink(missing_ok=True)
-
-    chapters = split_chapters(markdown)
-    summarized_chapters = []
-    for chapter in chapters:
-        try:
-            summary = _summarize_chapter(chapter)
-        except Exception as exc:
-            tree_path.unlink(missing_ok=True)
-            return json.dumps(
-                {
-                    "error": f"Chapter summary failed: {exc}",
-                    "doc_id": doc_id,
-                    "chapter_id": chapter["chapter_id"],
-                    "title": chapter["title"],
-                    "error_type": type(exc).__name__,
-                },
-                ensure_ascii=False,
-            )
-        summarized_chapters.append(
-            {
-                "chapter_id": chapter["chapter_id"],
-                "title": chapter["title"],
-                "summary": summary,
-                "char_count": len(chapter["text"]),
-            }
-        )
-
-    tree = {
-        "doc_id": doc_id,
-        "markdown_sha256": markdown_sha256,
-        "chapters": summarized_chapters,
-    }
-    tree_path.parent.mkdir(parents=True, exist_ok=True)
-    tree_path.write_text(
-        json.dumps(tree, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-    return json.dumps(
-        {**tree, "cached": False, "tree_path": str(tree_path)},
-        ensure_ascii=False,
-    )
-
-
-@tool
-def get_chapter_summary(doc_id: str, chapter_id: str) -> str:
-    """Return one cached chapter summary."""
-    if err := _doc_id_error(doc_id):
-        return err
-    tree_path = _tree_path(doc_id)
-    if not tree_path.exists():
-        return json.dumps(
-            {"error": f"Summary tree not found for doc_id: {doc_id}"},
-            ensure_ascii=False,
-        )
-    tree = json.loads(tree_path.read_text(encoding="utf-8"))
-    chapter = next(
-        (
-            item
-            for item in tree.get("chapters", [])
-            if item["chapter_id"] == chapter_id
-        ),
-        None,
-    )
-    if chapter is None:
-        return json.dumps(
-            {"error": f"Chapter not found: {chapter_id}"},
-            ensure_ascii=False,
-        )
-    return json.dumps(
-        {"doc_id": doc_id, **chapter},
         ensure_ascii=False,
     )

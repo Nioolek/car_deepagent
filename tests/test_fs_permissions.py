@@ -9,8 +9,8 @@ from car_deepagent.fs_permissions import (
 def test_allowed_read_globs_cover_required_roots():
     assert "/skills/**" in ALLOWED_READ_GLOBS
     assert "/docs/interviews/**" in ALLOWED_READ_GLOBS
-    assert "/workspace/cache/summary_trees/**" in ALLOWED_READ_GLOBS
     assert "/workspace/cache/markdown/**" in ALLOWED_READ_GLOBS
+    assert "/workspace/cache/doc_maps/**" in ALLOWED_READ_GLOBS
 
 
 def test_permissions_allow_whitelisted_reads():
@@ -27,7 +27,7 @@ def test_permissions_allow_whitelisted_reads():
         _check_fs_permission(
             rules,
             "read",
-            "/workspace/cache/summary_trees/interview_001.json",
+            "/workspace/cache/markdown/interview_001.md",
         )
         == "allow"
     )
@@ -35,7 +35,7 @@ def test_permissions_allow_whitelisted_reads():
         _check_fs_permission(
             rules,
             "read",
-            "/workspace/cache/markdown/interview_001.md",
+            "/workspace/cache/doc_maps/interview_001.json",
         )
         == "allow"
     )

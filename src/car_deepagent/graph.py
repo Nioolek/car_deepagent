@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from deepagents import (
     FilesystemPermission,
     GeneralPurposeSubagentProfile,
@@ -18,13 +20,11 @@ from car_deepagent.middleware import (
 )
 from car_deepagent.paths import repo_root
 from car_deepagent.subagents.report_analyst import build_report_analyst_subagent
-from car_deepagent.tools.documents import (
-    ensure_document_markdown,
-    ensure_summary_tree,
-    get_chapter_summary,
-)
+from car_deepagent.tools.documents import ensure_document_markdown
 from car_deepagent.tools.tokens import estimate_tokens
 from car_deepagent.tools.user_profile import get_user_profile
+
+logger = logging.getLogger(__name__)
 
 MAIN_PROMPT = """你是鸿蒙智行用户调研访谈分析智能体。
 能力：单篇/多篇报告分析、用户画像交叉验证、todo 规划、脚注溯源、skills。
@@ -52,6 +52,7 @@ def _disable_general_purpose(settings: Settings) -> None:
     )
     for key in {
         "car-deepagent",
+        "openai",
         settings.model,
         f"openai:{settings.model}",
     }:
@@ -69,8 +70,6 @@ def build_graph():
         tools=[
             get_user_profile,
             ensure_document_markdown,
-            ensure_summary_tree,
-            get_chapter_summary,
             estimate_tokens,
         ],
         system_prompt=MAIN_PROMPT,
@@ -100,4 +99,8 @@ def get_graph():
 try:
     graph = build_graph()
 except Exception:
+    logger.exception(
+        "Failed to build LangGraph graph at import; "
+        "set LLM_* in .env or call get_graph() after configuring settings."
+    )
     graph = None
