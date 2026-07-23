@@ -78,3 +78,23 @@ def test_save_doc_map_strips_findings(tmp_path, monkeypatch):
     stored = json.loads((maps / "interview_t.json").read_text(encoding="utf-8"))
     assert "findings" not in stored
 
+
+def test_save_doc_map_rejects_non_object_json(tmp_path, monkeypatch):
+    md = tmp_path / "md"
+    maps = tmp_path / "maps"
+    md.mkdir()
+    maps.mkdir()
+    monkeypatch.setattr(docs, "markdown_cache_dir", lambda: md)
+    monkeypatch.setattr(docs, "doc_maps_dir", lambda: maps)
+    (md / "interview_t.md").write_text("body\n", encoding="utf-8")
+
+    result = json.loads(
+        docs.save_doc_map.invoke(
+            {"doc_id": "interview_t", "map_json": json.dumps(["not", "an", "object"])}
+        )
+    )
+
+    assert "error" in result
+    assert "object" in result["error"]
+    assert not (maps / "interview_t.json").exists()
+

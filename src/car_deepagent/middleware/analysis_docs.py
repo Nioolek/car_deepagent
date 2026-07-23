@@ -24,6 +24,7 @@ _DOC_ID_TOOLS = frozenset(
         "save_doc_map",
     }
 )
+_PATH_READ_TOOLS = frozenset({"read_file", "read", "grep", "glob", "ls"})
 _MARKDOWN_CACHE_RE = re.compile(r"^/workspace/cache/markdown/([^/]+)\.md$")
 _DOC_MAP_RE = re.compile(r"^/workspace/cache/doc_maps/([^/]+)\.json$")
 
@@ -75,24 +76,29 @@ def _denied_tool_message(request: ToolCallRequest, message: str) -> ToolMessage:
     )
 
 
-def _deny_read_file_if_needed(
+def _deny_path_read_if_needed(
     request: ToolCallRequest,
     paths: list[str],
     args: dict,
+    tool_name: str,
 ) -> ToolMessage | None:
-    raw = args.get("file_path") or args.get("path")
+    raw = (
+        args.get("file_path") or args.get("path")
+        if tool_name in {"read_file", "read"}
+        else args.get("path")
+    )
     if not isinstance(raw, str) or not raw.strip():
         return _denied_tool_message(
             request,
-            "本轮已选择分析文档，read_file 需要 file_path 参数。",
+            f"本轮已选择分析文档，{tool_name} 需要明确的 path 参数。",
         )
     posix = _normalize_virtual_path(raw)
     if posix is None:
         return _denied_tool_message(
             request,
-            "本轮已选择分析文档，read_file 路径不允许包含 '..'。",
+            f"本轮已选择分析文档，{tool_name} 路径不允许包含 '..'。",
         )
-    if posix.startswith("/skills/"):
+    if posix == "/skills" or posix.startswith("/skills/"):
         return None
 
     allowed = allowed_doc_ids(paths)
@@ -118,7 +124,9 @@ def _deny_read_file_if_needed(
             )
         return None
 
-    if posix.startswith(("/workspace/cache/markdown/", "/workspace/cache/doc_maps/")):
+    if posix.startswith(
+        ("/workspace/cache/markdown", "/workspace/cache/doc_maps")
+    ):
         return _denied_tool_message(
             request,
             f"缓存路径格式无效或不在本轮选择的分析文档列表中：{raw}",
@@ -133,6 +141,12 @@ def _deny_read_file_if_needed(
                 f"{raw}；允许：{', '.join(paths)}",
             )
         return None
+
+    if tool_name in {"grep", "glob", "ls"}:
+        return _denied_tool_message(
+            request,
+            f"本轮已选择分析文档，{tool_name} 只能访问已选文档或 /skills/：{raw}",
+        )
 
     return None
 
@@ -241,7 +255,7 @@ class AnalysisDocPathsMiddleware(AgentMiddleware):
                 )
             return None
 
-        if name in {"read_file", "read"}:
-            return _deny_read_file_if_needed(request, paths, args)
+        if name in _PATH_READ_TOOLS:
+            return _deny_path_read_if_needed(request, paths, args, name)
 
         return None

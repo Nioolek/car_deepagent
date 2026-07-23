@@ -231,6 +231,11 @@ def save_doc_map(doc_id: str, map_json: str) -> str:
             {"error": f"Invalid map_json: {exc}"},
             ensure_ascii=False,
         )
+    if not isinstance(payload, dict):
+        return json.dumps(
+            {"error": "Invalid map_json: expected a JSON object."},
+            ensure_ascii=False,
+        )
 
     markdown = markdown_path.read_text(encoding="utf-8")
     markdown_sha256 = hashlib.sha256(markdown.encode("utf-8")).hexdigest()

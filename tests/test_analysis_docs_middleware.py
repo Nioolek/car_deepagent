@@ -296,3 +296,90 @@ def test_wrap_tool_call_allows_skill_read_file_with_picker():
     result = mw.wrap_tool_call(request, handler)
     handler.assert_called_once_with(request)
     assert result.content == "ok"
+
+
+def _grep_request(path):
+    return ToolCallRequest(
+        tool_call={
+            "name": "grep",
+            "args": {"pattern": "needle", "path": path},
+            "id": "tc-grep",
+            "type": "tool_call",
+        },
+        tool=None,
+        state={},
+        runtime=SimpleNamespace(
+            context=AgentContext(
+                analysis_doc_paths=["docs/interviews/interview_001.docx"],
+            )
+        ),
+    )
+
+
+def test_wrap_tool_call_blocks_grep_on_unselected_markdown():
+    mw = AnalysisDocPathsMiddleware()
+    request = _grep_request("/workspace/cache/markdown/interview_002.md")
+    handler = MagicMock()
+
+    result = mw.wrap_tool_call(request, handler)
+
+    handler.assert_not_called()
+    assert isinstance(result, ToolMessage)
+    assert "interview_002" in str(result.content)
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/workspace/cache/markdown/interview_001.md",
+        "/skills/single-report-analysis/SKILL.md",
+    ],
+)
+def test_wrap_tool_call_allows_grep_on_selected_markdown_or_skills(path):
+    mw = AnalysisDocPathsMiddleware()
+    request = _grep_request(path)
+    handler = MagicMock(
+        return_value=ToolMessage(content="ok", tool_call_id="tc-grep")
+    )
+
+    result = mw.wrap_tool_call(request, handler)
+
+    handler.assert_called_once_with(request)
+    assert result.content == "ok"
+
+
+@pytest.mark.parametrize(
+    ("name", "args"),
+    [
+        ("grep", {"pattern": "needle"}),
+        ("grep", {"pattern": "needle", "path": "/workspace/cache/markdown"}),
+        ("glob", {"pattern": "*.md", "path": "/workspace/cache/markdown"}),
+        ("ls", {"path": "/workspace/cache/doc_maps"}),
+    ],
+)
+def test_wrap_tool_call_blocks_path_tools_that_can_scan_unselected_cache(
+    name, args
+):
+    mw = AnalysisDocPathsMiddleware()
+    request = ToolCallRequest(
+        tool_call={
+            "name": name,
+            "args": args,
+            "id": "tc-path-scan",
+            "type": "tool_call",
+        },
+        tool=None,
+        state={},
+        runtime=SimpleNamespace(
+            context=AgentContext(
+                analysis_doc_paths=["docs/interviews/interview_001.docx"],
+            )
+        ),
+    )
+    handler = MagicMock()
+
+    result = mw.wrap_tool_call(request, handler)
+
+    handler.assert_not_called()
+    assert isinstance(result, ToolMessage)
+    assert "error" in json.loads(str(result.content))
