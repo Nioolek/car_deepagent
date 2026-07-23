@@ -84,6 +84,8 @@ const StreamSession = ({
       },
     }),
     threadId: threadId ?? null,
+    // Persist run_id so Cancel → stream.stop() calls POST .../runs/{id}/cancel
+    reconnectOnMount: true,
     fetchStateHistory: true,
     onCustomEvent: (event, options) => {
       if (isUIMessage(event) || isRemoveUIMessage(event)) {
