@@ -30,6 +30,30 @@ def test_report_analyst_subagent_installs_picker_guard():
         isinstance(middleware, AnalysisDocPathsMiddleware)
         for middleware in spec["middleware"]
     )
+    # Spec lists custom tools only; filesystem tools are middleware-injected.
+    custom = {getattr(t, "name", None) for t in spec["tools"]}
+    assert "inspect_document" in custom
+    assert "read_file" not in custom
+
+
+def test_report_analyst_compiled_graph_exposes_read_file():
+    """FilesystemMiddleware must attach read_file to the live subagent graph."""
+    from car_deepagent.graph import build_graph
+
+    graph = build_graph()
+    task = graph.nodes["tools"].bound.tools_by_name["task"]
+    subagent_graphs = None
+    for cell in task.func.__closure__:
+        value = cell.cell_contents
+        if isinstance(value, dict) and "report_analyst" in value:
+            subagent_graphs = value
+            break
+    assert subagent_graphs is not None
+    runnable = subagent_graphs["report_analyst"]
+    tool_names = list(runnable.nodes["tools"].bound.tools_by_name)
+    assert "read_file" in tool_names
+    assert "grep" in tool_names
+    assert "inspect_document" in tool_names
 
 
 def test_deepagents_task_forwards_parent_runtime_context_to_subagent():

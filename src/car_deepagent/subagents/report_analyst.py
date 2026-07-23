@@ -11,9 +11,13 @@ from car_deepagent.tools.tokens import estimate_tokens
 REPORT_ANALYST_PROMPT = """你是单篇访谈文档分析子代理（markdown 源文件友好）。
 本版本假设文档可整篇进入上下文（子代理约 128k），采用全量读取，不要分页啃读。
 
+可用工具（务必使用）：
+- read_file / grep / ls / glob（文件系统，由运行时注入）
+- inspect_document / load_doc_map / save_doc_map / estimate_tokens
+
 Workflow（必须按序）：
 1. 可选：inspect_document / load_doc_map（有缓存可参考，但仍应用全量原文核对关键句）。
-2. 用一次（或极少次）read_file 读取全文：
+2. 必须用 read_file 读取全文（不要只用 inspect 臆造内容）：
    read_file(file_path="/docs/interviews/<doc_id>.md", offset=0, limit=50000)
    不要用 limit=150~200 分页扫描。若单次仍被截断，再按 offset 续读剩余部分直到读完。
 3. 基于全文构建 sections（start_line/end_line 为 read_file 显示的 1-based 行号）与 highlights。
@@ -28,12 +32,16 @@ Workflow（必须按序）：
 
 
 def build_report_analyst_subagent() -> dict:
+    # Custom tools only. Filesystem tools (read_file/grep/ls/...) come from
+    # deepagents FilesystemMiddleware that create_deep_agent attaches to every
+    # inline subagent — do not mistake this list for the full tool surface.
     return {
         "name": "report_analyst",
         "description": (
-            "Analyze one interview markdown by reading the file in full once "
-            "(read_file offset=0 limit=50000; 128k context). Return compact JSON "
-            "with line-footnoted findings for the parent agent."
+            "Analyze one interview markdown. Tools: read_file, grep, ls, glob, "
+            "inspect_document, load_doc_map, save_doc_map, estimate_tokens. "
+            "Read the file once with read_file(offset=0, limit=50000) and return "
+            "compact JSON with line-footnoted findings."
         ),
         "system_prompt": REPORT_ANALYST_PROMPT,
         "tools": [
