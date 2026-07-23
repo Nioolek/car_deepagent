@@ -12,7 +12,12 @@ from car_deepagent.analysis_docs import resolve_interview_file
 from car_deepagent.config import build_chat_model
 from car_deepagent.paths import markdown_cache_dir, summary_trees_dir
 
+MAX_LINES_DIRECT = 500
+MAX_CHARS_DIRECT = 15000
+
 _DOC_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
+_CJK_RE = re.compile(r"[\u4e00-\u9fff\u3400-\u4dbf]")
+_LATIN_RE = re.compile(r"[A-Za-z]")
 
 
 def _doc_id_error(doc_id: str) -> str | None:
@@ -23,6 +28,49 @@ def _doc_id_error(doc_id: str) -> str | None:
 
 def doc_id_for_path(path: str | Path) -> str:
     return Path(path).stem
+
+
+def count_text_volume(text: str) -> dict:
+    lines = text.splitlines()
+    chars = len(text)
+    chars_cjk = len(_CJK_RE.findall(text))
+    chars_latin = len(_LATIN_RE.findall(text))
+    chars_other = max(0, chars - chars_cjk - chars_latin)
+    return {
+        "lines": len(lines),
+        "chars": chars,
+        "chars_cjk": chars_cjk,
+        "chars_latin": chars_latin,
+        "chars_other": chars_other,
+    }
+
+
+def recommendation_for_volume(lines: int, chars: int) -> str:
+    if lines > MAX_LINES_DIRECT or chars > MAX_CHARS_DIRECT:
+        return "delegate"
+    return "direct_read"
+
+
+def _resolve_markdown_for_inspect(
+    path: str,
+) -> tuple[str, Path] | tuple[None, None]:
+    """Return (doc_id, markdown_path) from interview path/stem or existing cache."""
+    stripped = path.strip()
+    stem = Path(stripped).stem
+    if _DOC_ID_RE.fullmatch(stem):
+        cached = markdown_cache_dir() / f"{stem}.md"
+        if cached.exists():
+            return stem, cached
+
+    resolved = resolve_interview_file(path)
+    if resolved is None:
+        return None, None
+
+    doc_id = doc_id_for_path(resolved)
+    markdown_path = markdown_cache_dir() / f"{doc_id}.md"
+    if not markdown_path.exists():
+        return None, None
+    return doc_id, markdown_path
 
 
 def _sha256_file(path: Path) -> str:
@@ -111,6 +159,50 @@ def ensure_document_markdown(path: str) -> str:
             "chars": len(text),
             "source_path": source_path,
             "source_sha256": source_sha256,
+        },
+        ensure_ascii=False,
+    )
+
+
+@tool
+def inspect_document(path: str) -> str:
+    """Measure markdown volume and recommend direct_read vs delegate."""
+    doc_id, markdown_path = _resolve_markdown_for_inspect(path)
+    if doc_id is None or markdown_path is None:
+        resolved = resolve_interview_file(path)
+        if resolved is not None:
+            doc_id = doc_id_for_path(resolved)
+            return json.dumps(
+                {
+                    "error": (
+                        f"Markdown not found for doc_id: {doc_id}. "
+                        "Call ensure_document_markdown first."
+                    ),
+                },
+                ensure_ascii=False,
+            )
+        return json.dumps(
+            {
+                "error": (
+                    f"Interview document not found under docs/interviews/: {path}"
+                ),
+            },
+            ensure_ascii=False,
+        )
+
+    text = markdown_path.read_text(encoding="utf-8")
+    volume = count_text_volume(text)
+    recommendation = recommendation_for_volume(volume["lines"], volume["chars"])
+    return json.dumps(
+        {
+            "doc_id": doc_id,
+            "markdown_path": str(markdown_path),
+            **volume,
+            "recommendation": recommendation,
+            "thresholds": {
+                "max_lines_direct": MAX_LINES_DIRECT,
+                "max_chars_direct": MAX_CHARS_DIRECT,
+            },
         },
         ensure_ascii=False,
     )
