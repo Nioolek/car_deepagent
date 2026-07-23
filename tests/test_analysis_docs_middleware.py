@@ -2,6 +2,7 @@ import json
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
+import pytest
 from langchain.agents.middleware.types import ModelRequest
 from langchain_core.messages import SystemMessage, ToolMessage
 from langgraph.prebuilt.tool_node import ToolCallRequest
@@ -206,6 +207,72 @@ def test_wrap_tool_call_blocks_other_doc_map_via_read_file():
     result = mw.wrap_tool_call(request, handler)
     handler.assert_not_called()
     assert "other" in str(result.content)
+
+
+@pytest.mark.parametrize(
+    "file_path",
+    [
+        "/workspace/cache/markdown/./interview_002.md",
+        "/workspace/cache/doc_maps/./other.json",
+    ],
+)
+def test_wrap_tool_call_blocks_dot_alias_to_unselected_cache_doc(file_path):
+    mw = AnalysisDocPathsMiddleware()
+    request = ToolCallRequest(
+        tool_call={
+            "name": "read_file",
+            "args": {"file_path": file_path},
+            "id": "tc-dot-alias-denied",
+            "type": "tool_call",
+        },
+        tool=None,
+        state={},
+        runtime=SimpleNamespace(
+            context=AgentContext(
+                analysis_doc_paths=["docs/interviews/interview_001.docx"],
+            )
+        ),
+    )
+    handler = MagicMock()
+
+    result = mw.wrap_tool_call(request, handler)
+
+    handler.assert_not_called()
+    assert isinstance(result, ToolMessage)
+    assert "error" in json.loads(str(result.content))
+
+
+@pytest.mark.parametrize(
+    "file_path",
+    [
+        "/workspace/cache/markdown/subdir/../interview_002.md",
+        "/workspace/cache/doc_maps/subdir/../other.json",
+    ],
+)
+def test_wrap_tool_call_blocks_parent_traversal_in_cache_path(file_path):
+    mw = AnalysisDocPathsMiddleware()
+    request = ToolCallRequest(
+        tool_call={
+            "name": "read_file",
+            "args": {"file_path": file_path},
+            "id": "tc-parent-traversal-denied",
+            "type": "tool_call",
+        },
+        tool=None,
+        state={},
+        runtime=SimpleNamespace(
+            context=AgentContext(
+                analysis_doc_paths=["docs/interviews/interview_001.docx"],
+            )
+        ),
+    )
+    handler = MagicMock()
+
+    result = mw.wrap_tool_call(request, handler)
+
+    handler.assert_not_called()
+    assert isinstance(result, ToolMessage)
+    assert "error" in json.loads(str(result.content))
 
 
 def test_wrap_tool_call_allows_skill_read_file_with_picker():

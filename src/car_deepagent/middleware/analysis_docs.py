@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from pathlib import PurePosixPath
 from typing import Any, Callable
 
 from langchain.agents.middleware import AgentMiddleware
@@ -25,6 +26,17 @@ _DOC_ID_TOOLS = frozenset(
 )
 _MARKDOWN_CACHE_RE = re.compile(r"^/workspace/cache/markdown/([^/]+)\.md$")
 _DOC_MAP_RE = re.compile(r"^/workspace/cache/doc_maps/([^/]+)\.json$")
+
+
+def _normalize_virtual_path(raw: str) -> str | None:
+    """Canonicalize virtual paths while rejecting parent traversal."""
+    path = PurePosixPath(raw.replace("\\", "/").strip())
+    if ".." in path.parts:
+        return None
+    normalized = path.as_posix()
+    if normalized.startswith("//"):
+        normalized = f"/{normalized.lstrip('/')}"
+    return normalized
 
 
 def _paths_from_runtime(runtime: Any) -> list[str]:
@@ -74,7 +86,12 @@ def _deny_read_file_if_needed(
             request,
             "本轮已选择分析文档，read_file 需要 file_path 参数。",
         )
-    posix = raw.replace("\\", "/").strip()
+    posix = _normalize_virtual_path(raw)
+    if posix is None:
+        return _denied_tool_message(
+            request,
+            "本轮已选择分析文档，read_file 路径不允许包含 '..'。",
+        )
     if posix.startswith("/skills/"):
         return None
 
@@ -100,6 +117,12 @@ def _deny_read_file_if_needed(
                 f"{doc_id}；允许：{', '.join(sorted(allowed))}",
             )
         return None
+
+    if posix.startswith(("/workspace/cache/markdown/", "/workspace/cache/doc_maps/")):
+        return _denied_tool_message(
+            request,
+            f"缓存路径格式无效或不在本轮选择的分析文档列表中：{raw}",
+        )
 
     if "docs/interviews/" in posix or posix.startswith("/docs/interviews/"):
         normalized = normalize_doc_path(posix)

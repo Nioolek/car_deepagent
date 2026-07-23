@@ -18,7 +18,9 @@ metadata:
 ## Instructions
 
 1. `write_todos`: one item per document + a final synthesis step.
-2. Issue multiple `task(report_analyst)` calls in one turn when possible (parallel).
-3. Synthesize contrasts and agreements; keep per-document line footnotes (`[^doc§L123]` or `[^doc§L100-L150]`).
-4. Optionally call `get_user_profile` when a user identity is known.
-5. End with `## 参考文献摘录` covering all cited docs.
+2. For **each** document, call `ensure_document_markdown`, then `inspect_document`.
+3. Follow each inspection recommendation: for `direct_read`, paginate with `read_file`; for `delegate`, call `task(report_analyst)` and do not read the long document in the parent context. Never delegate every document without inspecting it first.
+4. When multiple documents recommend `delegate`, issue their `task(report_analyst)` calls in one turn when possible (parallel).
+5. Synthesize contrasts and agreements; keep per-document line footnotes (`[^doc§L123]` or `[^doc§L100-L150]`).
+6. Optionally call `get_user_profile` when a user identity is known.
+7. End with `## 参考文献摘录` covering all cited docs.
