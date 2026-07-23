@@ -5,6 +5,8 @@ from deepagents import FilesystemPermission
 # Virtual paths under FilesystemBackend(root_dir=repo, virtual_mode=True).
 # Include bare directory roots so ls/glob on /skills or /docs/interviews work
 # (/** globs alone do not match the directory path without a trailing segment).
+# /large_tool_results/** is required: deepagents offloads oversized tool payloads
+# there and instructs the model to read_file/grep those paths.
 ALLOWED_READ_GLOBS = (
     "/skills",
     "/skills/",
@@ -15,6 +17,9 @@ ALLOWED_READ_GLOBS = (
     "/workspace/cache/doc_maps",
     "/workspace/cache/doc_maps/",
     "/workspace/cache/doc_maps/**",
+    "/large_tool_results",
+    "/large_tool_results/",
+    "/large_tool_results/**",
 )
 
 

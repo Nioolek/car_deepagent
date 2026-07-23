@@ -17,6 +17,7 @@ Workflow（必须按序）：
 5. save_doc_map 只保存 sections+highlights（不要把整份 findings 塞进缓存）。
 6. 最终回复必须是一个 JSON 对象，字段：doc_id, source_path, sections, highlights, findings, references。
    findings 示例：[{"claim":"...", "footnote":"[^eval_long§L55]", "quote":"..."}]
+   控制体积：findings≤8 条，references≤8 条，quote≤80 字，整份 JSON 尽量 <6000 字符，避免触发父代理 large_tool_results 卸载。
 禁止把全文一次性读进回复。
 """
 

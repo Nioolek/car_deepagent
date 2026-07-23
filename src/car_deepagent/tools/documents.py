@@ -7,7 +7,11 @@ from pathlib import Path
 
 from langchain_core.tools import tool
 
-from car_deepagent.analysis_docs import interview_virtual_path, resolve_interview_file
+from car_deepagent.analysis_docs import (
+    interview_virtual_path,
+    resolve_interview_file,
+    search_interview_docs,
+)
 from car_deepagent.paths import doc_maps_dir
 
 MAX_LINES_DIRECT = 500
@@ -55,6 +59,30 @@ def _resolve_source_markdown(path: str) -> tuple[str, Path] | tuple[None, None]:
     if resolved is None:
         return None, None
     return doc_id_for_path(resolved), resolved
+
+
+@tool
+def list_interview_docs(query: str = "") -> str:
+    """List interview markdown files under docs/interviews (optional name filter).
+
+    Prefer this over ls/glob when discovering or confirming interview paths.
+    Returns JSON: {"files":[{"path","doc_id","virtual_path"},...], "query":...}.
+    """
+    paths = search_interview_docs(query)
+    files = []
+    for rel in paths:
+        doc_id = Path(rel).stem
+        files.append(
+            {
+                "path": rel,
+                "doc_id": doc_id,
+                "virtual_path": interview_virtual_path(doc_id),
+            }
+        )
+    return json.dumps(
+        {"files": files, "query": (query or "").strip() or None, "count": len(files)},
+        ensure_ascii=False,
+    )
 
 
 @tool

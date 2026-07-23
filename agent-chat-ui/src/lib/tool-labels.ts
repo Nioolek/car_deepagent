@@ -12,6 +12,7 @@ const TOOL_LABELS: Record<string, string> = {
   execute: "执行命令",
   task: "子任务",
   inspect_document: "检查文档体量",
+  list_interview_docs: "列出访谈文档",
   load_doc_map: "加载文档地图",
   save_doc_map: "保存文档地图",
   get_user_profile: "用户画像",

@@ -6,6 +6,18 @@ from car_deepagent.fs_permissions import (
 )
 
 
+def test_allowed_read_globs_cover_required_roots():
+    assert "/skills" in ALLOWED_READ_GLOBS
+    assert "/skills/**" in ALLOWED_READ_GLOBS
+    assert "/docs/interviews" in ALLOWED_READ_GLOBS
+    assert "/docs/interviews/**" in ALLOWED_READ_GLOBS
+    assert "/workspace/cache/doc_maps" in ALLOWED_READ_GLOBS
+    assert "/workspace/cache/doc_maps/**" in ALLOWED_READ_GLOBS
+    assert "/large_tool_results" in ALLOWED_READ_GLOBS
+    assert "/large_tool_results/**" in ALLOWED_READ_GLOBS
+    assert "/workspace/cache/markdown/**" not in ALLOWED_READ_GLOBS
+
+
 def test_permissions_allow_directory_roots_for_ls():
     """ls/glob often use directory paths without a trailing file segment."""
     rules = build_filesystem_permissions()
@@ -15,16 +27,10 @@ def test_permissions_allow_directory_roots_for_ls():
     assert _check_fs_permission(rules, "read", "/docs/interviews/") == "allow"
     assert _check_fs_permission(rules, "read", "/workspace/cache/doc_maps") == "allow"
     assert _check_fs_permission(rules, "read", "/workspace/cache/doc_maps/") == "allow"
-
-
-def test_allowed_read_globs_cover_required_roots():
-    assert "/skills" in ALLOWED_READ_GLOBS
-    assert "/skills/**" in ALLOWED_READ_GLOBS
-    assert "/docs/interviews" in ALLOWED_READ_GLOBS
-    assert "/docs/interviews/**" in ALLOWED_READ_GLOBS
-    assert "/workspace/cache/doc_maps" in ALLOWED_READ_GLOBS
-    assert "/workspace/cache/doc_maps/**" in ALLOWED_READ_GLOBS
-    assert "/workspace/cache/markdown/**" not in ALLOWED_READ_GLOBS
+    assert _check_fs_permission(rules, "read", "/large_tool_results") == "allow"
+    assert (
+        _check_fs_permission(rules, "read", "/large_tool_results/abc123") == "allow"
+    )
 
 
 def test_permissions_allow_whitelisted_reads():

@@ -20,6 +20,8 @@ from typing import Any, Callable
 from car_deepagent.graph import get_graph
 
 FOOTNOTE_RE = re.compile(r"\[\^[^\]]+§L(\d+)(?:-L(\d+))?\]")
+FOOTNOTE_DOC_RE = re.compile(r"\[\^([A-Za-z0-9_-]+)§L(\d+)(?:-L(\d+))?\]")
+FOOTNOTE_ANY_RE = re.compile(r"\[\^[^\]]+\]")
 MARKER_LINE = {
     "MARKER_SHORT_VOICE_OK": 12,
     "MARKER_SHORT_VOICE_BAD": 16,
@@ -164,6 +166,36 @@ def _covers_marker(answer: str, marker: str, window: int = 8) -> bool:
     return marker in answer
 
 
+def _footnote_line_errors(answer: str) -> list[str]:
+    """Cited lines must exist in the named interview markdown and be non-empty."""
+    from car_deepagent.paths import interviews_dir
+
+    errors: list[str] = []
+    for token in FOOTNOTE_ANY_RE.findall(answer):
+        if "§L" in token and not FOOTNOTE_DOC_RE.fullmatch(token):
+            errors.append(f"malformed footnote: {token}")
+
+    root = interviews_dir()
+    for match in FOOTNOTE_DOC_RE.finditer(answer):
+        doc_id = match.group(1)
+        start = int(match.group(2))
+        end = int(match.group(3) or match.group(2))
+        path = root / f"{doc_id}.md"
+        if not path.is_file():
+            errors.append(f"footnote doc missing: {doc_id}")
+            continue
+        lines = path.read_text(encoding="utf-8").splitlines()
+        if start < 1 or end > len(lines) or start > end:
+            errors.append(
+                f"footnote out of range {doc_id}§L{start}-L{end} (n={len(lines)})"
+            )
+            continue
+        snippet = "\n".join(lines[start - 1 : end]).strip()
+        if not snippet:
+            errors.append(f"footnote empty lines {doc_id}§L{start}-L{end}")
+    return errors
+
+
 CASES: dict[str, dict[str, Any]] = {
     "short": {
         "question": (
@@ -172,7 +204,7 @@ CASES: dict[str, dict[str, Any]] = {
         ),
         "expect": {
             "must_call": ["inspect_document"],
-            "must_not_call": ["task"],
+            "must_not_call": ["task", "ls", "glob"],
             "inspect_ok": True,
             "no_tool_errors": True,
             "answer_has_footnote": True,
@@ -182,6 +214,25 @@ CASES: dict[str, dict[str, Any]] = {
                 "MARKER_SHORT_VOICE_OK",
                 "MARKER_SHORT_VOICE_BAD",
             ],
+            "verify_footnote_lines": True,
+        },
+    },
+    "stem": {
+        "question": (
+            "请分析访谈文档 eval_short（仅 stem，不要猜绝对磁盘路径）中用户对语音误唤醒的态度，"
+            "给出脚注与 ## 参考文献摘录。"
+        ),
+        "expect": {
+            "must_call": ["inspect_document"],
+            "must_not_call": ["task"],
+            "inspect_ok": True,
+            "no_tool_errors": True,
+            "answer_has_footnote": True,
+            "answer_has_refs_section": True,
+            "answer_mentions": ["误唤醒"],
+            "footnote_covers_markers": ["MARKER_SHORT_VOICE_BAD"],
+            "verify_footnote_lines": True,
+            "soft_marker_coverage": True,
         },
     },
     "long": {
@@ -202,8 +253,8 @@ CASES: dict[str, dict[str, Any]] = {
                 "MARKER_LONG_TAKEOVER",
                 "MARKER_LONG_OTA",
             ],
-            # Allow soft fail on marker coverage (model variance) but record it
             "soft_marker_coverage": True,
+            "verify_footnote_lines": True,
         },
     },
     "multi": {
@@ -213,7 +264,7 @@ CASES: dict[str, dict[str, Any]] = {
         ),
         "expect": {
             "must_call": ["inspect_document"],
-            "must_not_call": [],
+            "must_not_call": ["ls", "glob"],
             "inspect_ok": True,
             "no_tool_errors": True,
             "answer_has_footnote": True,
@@ -224,6 +275,28 @@ CASES: dict[str, dict[str, Any]] = {
                 "MARKER_PEER_VOICE",
             ],
             "soft_marker_coverage": True,
+            "verify_footnote_lines": True,
+        },
+    },
+    "mixed": {
+        "question": (
+            "综合 /docs/interviews/eval_short.md 与 /docs/interviews/eval_long.md："
+            "前者看语音痛点，后者看 NOA 信任；各至少 1 条带脚注发现，并附 ## 参考文献摘录。"
+        ),
+        "expect": {
+            "must_call": ["inspect_document", "task"],
+            "must_not_call": [],
+            "inspect_ok": True,
+            "no_tool_errors": True,
+            "answer_has_footnote": True,
+            "answer_has_refs_section": True,
+            "answer_mentions": ["语音", "NOA"],
+            "footnote_covers_markers": [
+                "MARKER_SHORT_VOICE_BAD",
+                "MARKER_LONG_NOA_TRUST",
+            ],
+            "soft_marker_coverage": True,
+            "verify_footnote_lines": True,
         },
     },
 }
@@ -301,6 +374,13 @@ def evaluate_case(
             failures.append(
                 f"(soft) footnote does not cover {marker}@{MARKER_LINE[marker]}"
             )
+
+    if expect.get("verify_footnote_lines"):
+        line_errors = _footnote_line_errors(answer)
+        ok = len(line_errors) == 0
+        checks["footnote_lines_valid"] = ok
+        if not ok:
+            failures.extend(line_errors)
 
     hard_failures = [f for f in failures if not f.startswith("(soft)")]
     return len(hard_failures) == 0, checks, failures
@@ -398,5 +478,5 @@ if __name__ == "__main__":
         help="Run selected case(s); default all",
     )
     args = parser.parse_args()
-    selected = args.case or ["short", "long", "multi"]
+    selected = args.case or ["short", "stem", "long", "multi", "mixed"]
     raise SystemExit(asyncio.run(main(selected)))
