@@ -50,9 +50,10 @@ def resolve_interview_file(path: str) -> Path | None:
 
     Accepts:
     - repo-relative paths like docs/interviews/interview_001.md
+    - virtual FS paths like /docs/interviews/interview_001.md
     - bare filenames interview_001.md
     - bare stems interview_001
-    - absolute paths that still resolve inside docs/interviews
+    - absolute OS paths that still resolve inside docs/interviews
     """
     raw = (path or "").strip().strip("\"'")
     if not raw:
@@ -60,6 +61,15 @@ def resolve_interview_file(path: str) -> Path | None:
 
     interviews = interviews_dir().resolve()
     repo = repo_root().resolve()
+    posix = raw.replace("\\", "/")
+
+    # Map FilesystemBackend virtual paths onto repo-relative interviews.
+    if posix.startswith("/docs/interviews/"):
+        posix = posix[1:]
+        raw = posix
+    elif posix == "/docs/interviews":
+        return None
+
     candidate = Path(raw)
     name = candidate.name
     stem = Path(name).stem if name else ""
@@ -68,7 +78,6 @@ def resolve_interview_file(path: str) -> Path | None:
     if candidate.is_absolute():
         trials.append(candidate)
     else:
-        posix = raw.replace("\\", "/")
         if posix.startswith("docs/interviews/"):
             trials.append(repo / posix)
         if name:

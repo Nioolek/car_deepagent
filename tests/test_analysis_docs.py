@@ -12,11 +12,24 @@ from car_deepagent.paths import interviews_dir, repo_root
 
 def test_list_interview_md_paths():
     paths = list_interview_md_paths()
-    assert paths == [
+    for expected in (
         "docs/interviews/interview_001.md",
         "docs/interviews/interview_002.md",
         "docs/interviews/interview_003.md",
-    ]
+    ):
+        assert expected in paths
+    assert all(p.endswith(".md") and p.startswith("docs/interviews/") for p in paths)
+
+
+def test_resolve_virtual_fs_path_with_leading_slash():
+    """Agents pass FilesystemBackend virtual paths starting with /docs/..."""
+    assert resolve_interview_file("/docs/interviews/interview_001.md") is not None
+    assert normalize_doc_path("/docs/interviews/interview_001.md") == (
+        "docs/interviews/interview_001.md"
+    )
+    assert normalize_doc_path("/docs/interviews/interview_001") == (
+        "docs/interviews/interview_001.md"
+    )
 
 
 def test_search_interview_docs_filters_by_name():

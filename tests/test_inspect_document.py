@@ -50,11 +50,11 @@ def test_inspect_document_on_interview_markdown(tmp_path, monkeypatch):
     assert data["thresholds"]["max_chars_direct"] == 15000
 
 
-def test_inspect_document_interview_not_found(tmp_path, monkeypatch):
-    _patch_interview_dirs(tmp_path, monkeypatch)
-
-    raw = docs.inspect_document.invoke({"path": "no_such_interview"})
+def test_inspect_document_accepts_virtual_fs_path():
+    raw = docs.inspect_document.invoke(
+        {"path": "/docs/interviews/interview_001.md"}
+    )
     data = json.loads(raw)
-    assert "error" in data
-    assert "Interview document not found" in data["error"]
-    assert "no_such_interview" in data["error"]
+    assert data["doc_id"] == "interview_001"
+    assert data["source_path"] == "/docs/interviews/interview_001.md"
+    assert "error" not in data

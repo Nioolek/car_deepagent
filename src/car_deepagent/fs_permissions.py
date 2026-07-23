@@ -3,9 +3,17 @@ from __future__ import annotations
 from deepagents import FilesystemPermission
 
 # Virtual paths under FilesystemBackend(root_dir=repo, virtual_mode=True).
+# Include bare directory roots so ls/glob on /skills or /docs/interviews work
+# (/** globs alone do not match the directory path without a trailing segment).
 ALLOWED_READ_GLOBS = (
+    "/skills",
+    "/skills/",
     "/skills/**",
+    "/docs/interviews",
+    "/docs/interviews/",
     "/docs/interviews/**",
+    "/workspace/cache/doc_maps",
+    "/workspace/cache/doc_maps/",
     "/workspace/cache/doc_maps/**",
 )
 
