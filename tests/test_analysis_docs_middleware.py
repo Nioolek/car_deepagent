@@ -144,29 +144,6 @@ def test_wrap_tool_call_blocks_inspect_document_for_other_doc_id():
     assert "interview_003" in str(result.content)
 
 
-def test_wrap_tool_call_blocks_load_doc_map_for_other_doc_id():
-    mw = AnalysisDocPathsMiddleware()
-    request = ToolCallRequest(
-        tool_call={
-            "name": "load_doc_map",
-            "args": {"doc_id": "interview_003"},
-            "id": "tc-map-denied",
-            "type": "tool_call",
-        },
-        tool=None,
-        state={},
-        runtime=SimpleNamespace(
-            context=AgentContext(
-                analysis_doc_paths=["docs/interviews/interview_001.md"],
-            )
-        ),
-    )
-    handler = MagicMock()
-    result = mw.wrap_tool_call(request, handler)
-    handler.assert_not_called()
-    assert "interview_003" in str(result.content)
-
-
 def test_wrap_tool_call_blocks_other_markdown_via_read_file():
     mw = AnalysisDocPathsMiddleware()
     request = ToolCallRequest(
@@ -190,42 +167,12 @@ def test_wrap_tool_call_blocks_other_markdown_via_read_file():
     assert "interview_002" in str(result.content)
 
 
-def test_wrap_tool_call_blocks_other_doc_map_via_read_file():
+def test_wrap_tool_call_blocks_dot_alias_to_unselected_interview():
     mw = AnalysisDocPathsMiddleware()
     request = ToolCallRequest(
         tool_call={
             "name": "read_file",
-            "args": {"file_path": "/workspace/cache/doc_maps/other.json"},
-            "id": "tc-map-read-denied",
-            "type": "tool_call",
-        },
-        tool=None,
-        state={},
-        runtime=SimpleNamespace(
-            context=AgentContext(
-                analysis_doc_paths=["docs/interviews/interview_001.md"],
-            )
-        ),
-    )
-    handler = MagicMock()
-    result = mw.wrap_tool_call(request, handler)
-    handler.assert_not_called()
-    assert "other" in str(result.content)
-
-
-@pytest.mark.parametrize(
-    "file_path",
-    [
-        "/docs/interviews/./interview_002.md",
-        "/workspace/cache/doc_maps/./other.json",
-    ],
-)
-def test_wrap_tool_call_blocks_dot_alias_to_unselected_cache_doc(file_path):
-    mw = AnalysisDocPathsMiddleware()
-    request = ToolCallRequest(
-        tool_call={
-            "name": "read_file",
-            "args": {"file_path": file_path},
+            "args": {"file_path": "/docs/interviews/./interview_002.md"},
             "id": "tc-dot-alias-denied",
             "type": "tool_call",
         },
@@ -246,19 +193,14 @@ def test_wrap_tool_call_blocks_dot_alias_to_unselected_cache_doc(file_path):
     assert "error" in json.loads(str(result.content))
 
 
-@pytest.mark.parametrize(
-    "file_path",
-    [
-        "/docs/interviews/subdir/../interview_002.md",
-        "/workspace/cache/doc_maps/subdir/../other.json",
-    ],
-)
-def test_wrap_tool_call_blocks_parent_traversal_in_cache_path(file_path):
+def test_wrap_tool_call_blocks_parent_traversal_in_interview_path():
     mw = AnalysisDocPathsMiddleware()
     request = ToolCallRequest(
         tool_call={
             "name": "read_file",
-            "args": {"file_path": file_path},
+            "args": {
+                "file_path": "/docs/interviews/subdir/../interview_002.md",
+            },
             "id": "tc-parent-traversal-denied",
             "type": "tool_call",
         },
@@ -277,6 +219,31 @@ def test_wrap_tool_call_blocks_parent_traversal_in_cache_path(file_path):
     handler.assert_not_called()
     assert isinstance(result, ToolMessage)
     assert "error" in json.loads(str(result.content))
+
+
+def test_wrap_tool_call_allows_large_tool_results_read_with_picker():
+    mw = AnalysisDocPathsMiddleware()
+    request = ToolCallRequest(
+        tool_call={
+            "name": "read_file",
+            "args": {"file_path": "/large_tool_results/abc123"},
+            "id": "tc-ltr",
+            "type": "tool_call",
+        },
+        tool=None,
+        state={},
+        runtime=SimpleNamespace(
+            context=AgentContext(
+                analysis_doc_paths=["docs/interviews/interview_001.md"],
+            )
+        ),
+    )
+    handler = MagicMock(
+        return_value=ToolMessage(content="ok", tool_call_id="tc-ltr")
+    )
+    result = mw.wrap_tool_call(request, handler)
+    handler.assert_called_once_with(request)
+    assert result.content == "ok"
 
 
 def test_wrap_tool_call_allows_skill_read_file_with_picker():
@@ -358,10 +325,10 @@ def test_wrap_tool_call_allows_grep_on_selected_markdown_or_skills(path):
         ("grep", {"pattern": "needle"}),
         ("grep", {"pattern": "needle", "path": "/docs/interviews"}),
         ("glob", {"pattern": "*.md", "path": "/docs/interviews"}),
-        ("ls", {"path": "/workspace/cache/doc_maps"}),
+        ("ls", {"path": "/docs"}),
     ],
 )
-def test_wrap_tool_call_blocks_path_tools_that_can_scan_unselected_cache(
+def test_wrap_tool_call_blocks_path_tools_that_can_scan_unselected_docs(
     name, args
 ):
     mw = AnalysisDocPathsMiddleware()

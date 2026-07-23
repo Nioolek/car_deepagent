@@ -123,11 +123,10 @@ uv run python scripts/smoke_astream.py --mode profile
 
 预期现象：
 
-- 流式输出中出现工具调用（如 `inspect_document`、`load_doc_map`、`task` / `get_user_profile`）
+- 流式输出中出现工具调用（如 `inspect_document`、`task` / `get_user_profile`）
 - 最终回答含 `[^interview_xxx§L123]` 或 `[^interview_xxx§L100-L150]` 脚注与 `## 参考文献摘录`
-- 文档地图缓存写入 `workspace/cache/doc_maps/`（已 gitignore）
 
-脚注中的 `L` 表示缓存 Markdown 的 1-based 原文行号；范围脚注表示引用连续行，文末摘录应与该行号范围对应。
+脚注中的 `L` 表示访谈 Markdown 的 1-based 原文行号；范围脚注表示引用连续行，文末摘录应与该行号范围对应。
 
 ## 5. 自定义问题（Python）
 

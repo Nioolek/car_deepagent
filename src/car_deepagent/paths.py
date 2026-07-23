@@ -18,15 +18,3 @@ def data_users_dir() -> Path:
 
 def interviews_dir() -> Path:
     return repo_root() / "docs" / "interviews"
-
-
-def cache_dir() -> Path:
-    path = repo_root() / "workspace" / "cache"
-    path.mkdir(parents=True, exist_ok=True)
-    return path
-
-
-def doc_maps_dir() -> Path:
-    path = cache_dir() / "doc_maps"
-    path.mkdir(parents=True, exist_ok=True)
-    return path

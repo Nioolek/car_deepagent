@@ -19,15 +19,8 @@ from car_deepagent.analysis_docs import (
 from car_deepagent.tools.documents import volume_summary_for_path
 
 _DOC_PATH_TOOLS = frozenset({"inspect_document"})
-_DOC_ID_TOOLS = frozenset(
-    {
-        "load_doc_map",
-        "save_doc_map",
-    }
-)
 _PATH_READ_TOOLS = frozenset({"read_file", "read", "grep", "glob", "ls"})
 _INTERVIEW_MD_RE = re.compile(r"^/docs/interviews/([^/]+)\.md$")
-_DOC_MAP_RE = re.compile(r"^/workspace/cache/doc_maps/([^/]+)\.json$")
 
 
 def _normalize_virtual_path(raw: str) -> str | None:
@@ -69,10 +62,9 @@ def _instruction_block(paths: list[str]) -> str:
         "若 recommendation 已给出，可跳过 inspect_document，直接按 "
         "direct_read（主 agent 分页 read_file）或 delegate（task(report_analyst)）执行；"
         "仅在需要复核体量时再调用 inspect_document。\n"
-        "load_doc_map、save_doc_map 的 doc_id 必须是这些文件的文件名（不含扩展名）；"
-        "文档地图记录原文行号，用 read_file 读原文时只允许 "
-        "`/docs/interviews/<上述 doc_id>.md`，"
+        "用 read_file 读原文时只允许 `/docs/interviews/<上述 doc_id>.md`，"
         "引用必须使用 [^doc_id§L123] 或 [^doc_id§L100-L150] 行号脚注。"
+        "本版本不做文档地图/摘要缓存，每次按需读原文。"
     )
 
 
@@ -117,6 +109,10 @@ def _deny_path_read_if_needed(
     if posix == "/skills" or posix.startswith("/skills/"):
         return None
 
+    # Oversized tool payloads may be offloaded here by deepagents.
+    if posix == "/large_tool_results" or posix.startswith("/large_tool_results/"):
+        return None
+
     allowed = allowed_doc_ids(paths)
     interview_match = _INTERVIEW_MD_RE.match(posix)
     if interview_match:
@@ -128,23 +124,6 @@ def _deny_path_read_if_needed(
                 f"{doc_id}；允许：{', '.join(sorted(allowed))}",
             )
         return None
-
-    map_match = _DOC_MAP_RE.match(posix)
-    if map_match:
-        doc_id = map_match.group(1)
-        if doc_id not in allowed:
-            return _denied_tool_message(
-                request,
-                "doc map 不在本轮选择的分析文档列表中："
-                f"{doc_id}；允许：{', '.join(sorted(allowed))}",
-            )
-        return None
-
-    if posix.startswith("/workspace/cache/doc_maps"):
-        return _denied_tool_message(
-            request,
-            f"缓存路径格式无效或不在本轮选择的分析文档列表中：{raw}",
-        )
 
     if "docs/interviews/" in posix or posix.startswith("/docs/interviews/"):
         normalized = normalize_doc_path(posix)
@@ -250,22 +229,6 @@ class AnalysisDocPathsMiddleware(AgentMiddleware):
                     request,
                     "路径不在本轮选择的分析文档列表中："
                     f"{raw_path}；允许：{', '.join(paths)}",
-                )
-            return None
-
-        if name in _DOC_ID_TOOLS:
-            doc_id = args.get("doc_id")
-            if not isinstance(doc_id, str):
-                return _denied_tool_message(
-                    request,
-                    f"本轮已选择分析文档，{name} 需要 doc_id 参数。",
-                )
-            allowed = allowed_doc_ids(paths)
-            if doc_id not in allowed:
-                return _denied_tool_message(
-                    request,
-                    "doc_id 不在本轮选择的分析文档列表中："
-                    f"{doc_id}；允许：{', '.join(sorted(allowed))}",
                 )
             return None
 

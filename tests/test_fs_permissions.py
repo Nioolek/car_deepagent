@@ -11,10 +11,10 @@ def test_allowed_read_globs_cover_required_roots():
     assert "/skills/**" in ALLOWED_READ_GLOBS
     assert "/docs/interviews" in ALLOWED_READ_GLOBS
     assert "/docs/interviews/**" in ALLOWED_READ_GLOBS
-    assert "/workspace/cache/doc_maps" in ALLOWED_READ_GLOBS
-    assert "/workspace/cache/doc_maps/**" in ALLOWED_READ_GLOBS
     assert "/large_tool_results" in ALLOWED_READ_GLOBS
     assert "/large_tool_results/**" in ALLOWED_READ_GLOBS
+    assert "/workspace/cache/doc_maps" not in ALLOWED_READ_GLOBS
+    assert "/workspace/cache/doc_maps/**" not in ALLOWED_READ_GLOBS
     assert "/workspace/cache/markdown/**" not in ALLOWED_READ_GLOBS
 
 
@@ -25,8 +25,6 @@ def test_permissions_allow_directory_roots_for_ls():
     assert _check_fs_permission(rules, "read", "/skills/") == "allow"
     assert _check_fs_permission(rules, "read", "/docs/interviews") == "allow"
     assert _check_fs_permission(rules, "read", "/docs/interviews/") == "allow"
-    assert _check_fs_permission(rules, "read", "/workspace/cache/doc_maps") == "allow"
-    assert _check_fs_permission(rules, "read", "/workspace/cache/doc_maps/") == "allow"
     assert _check_fs_permission(rules, "read", "/large_tool_results") == "allow"
     assert (
         _check_fs_permission(rules, "read", "/large_tool_results/abc123") == "allow"
@@ -41,14 +39,6 @@ def test_permissions_allow_whitelisted_reads():
     )
     assert (
         _check_fs_permission(rules, "read", "/docs/interviews/interview_001.md")
-        == "allow"
-    )
-    assert (
-        _check_fs_permission(
-            rules,
-            "read",
-            "/workspace/cache/doc_maps/interview_001.json",
-        )
         == "allow"
     )
 
@@ -69,6 +59,14 @@ def test_permissions_deny_other_reads_and_all_writes():
             rules,
             "read",
             "/workspace/cache/markdown/interview_001.md",
+        )
+        == "deny"
+    )
+    assert (
+        _check_fs_permission(
+            rules,
+            "read",
+            "/workspace/cache/doc_maps/interview_001.json",
         )
         == "deny"
     )

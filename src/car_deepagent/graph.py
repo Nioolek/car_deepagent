@@ -23,8 +23,6 @@ from car_deepagent.subagents.report_analyst import build_report_analyst_subagent
 from car_deepagent.tools.documents import (
     inspect_document,
     list_interview_docs,
-    load_doc_map,
-    save_doc_map,
 )
 from car_deepagent.tools.tokens import estimate_tokens
 from car_deepagent.tools.user_profile import get_user_profile
@@ -35,11 +33,12 @@ MAIN_PROMPT = """你是鸿蒙智行用户调研访谈分析智能体。
 能力：单篇/多篇报告分析、用户画像交叉验证、todo 规划、脚注溯源、skills。
 
 规则：
-1. 文件系统只允许读取：/skills/**、/docs/interviews/**、/workspace/cache/doc_maps/**。
+1. 文件系统只允许读取：/skills/**、/docs/interviews/**（及 large_tool_results 溢出读）。
    访谈报告为 docs/interviews/*.md；可用完整路径、虚拟路径（/docs/interviews/...）、
    文件名或 stem（如 interview_001）。若运行上下文提供了 analysis_doc_paths（界面勾选），
    本轮只能分析这些路径，不要打开列表外的访谈文档。
    查找访谈文件时优先 list_interview_docs，不要用 ls/glob 在仓库根盲搜。
+   本版本不做文档地图/摘要缓存，每次按需读原文。
 2. 每篇文档先判断阅读策略：若运行上下文已给出 lines/chars/recommendation，
    可跳过 inspect_document，直接按 recommendation 执行；否则先 inspect_document
    （path 可用 /docs/interviews/<id>.md 或 stem）。
@@ -52,8 +51,10 @@ MAIN_PROMPT = """你是鸿蒙智行用户调研访谈分析智能体。
 4. 最终回答必须自洽完整：内联脚注格式必须严格为 [^doc§L123] 或 [^doc_id§L100-L150]
    （括号内不要夹杂其它文字/标记名/逗号列表），并附 ## 参考文献摘录。
    多行引用只用 [^doc§L11-L16]，禁止 [^doc§L11,L14-L16] 这类写法。
-   若调用了 task(report_analyst)，必须把子代理 findings/references
-   转写进最终回答（保留行号脚注）。带脚注的完整正文应出现在最后一条对用户可见的回复中；
+   若调用了 task(report_analyst)，子代理返回的是 Markdown 消化稿（用户核心信息、
+   段落摘要、重点摘录、整体概要等），不是 JSON；必须依据消化稿写最终回答，
+   用重点摘录/段落行号转写 [^doc§L…] 脚注与参考文献摘录。
+   带脚注的完整正文应出现在最后一条对用户可见的回复中；
    不要在完整分析之后再追加一条不含脚注的空泛收尾。
    用户已给出明确路径时直接 inspect_document，不必先 list_interview_docs。
 5. 需要用户信息时调用 get_user_profile。
@@ -90,8 +91,6 @@ def build_graph():
             get_user_profile,
             list_interview_docs,
             inspect_document,
-            load_doc_map,
-            save_doc_map,
             estimate_tokens,
         ],
         system_prompt=MAIN_PROMPT,
