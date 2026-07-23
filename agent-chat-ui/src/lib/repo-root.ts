@@ -12,11 +12,21 @@ function isInside(parent: string, child: string): boolean {
   );
 }
 
+/** Strip virtual-FS leading slash: `/docs/...` → `docs/...`. */
+function normalizeRequestedPath(requestedPath: string): string {
+  const trimmed = requestedPath.trim();
+  if (/^\/(?:docs|workspace\/cache|data)(?:\/|$)/i.test(trimmed)) {
+    return trimmed.replace(/^\/+/, "");
+  }
+  return trimmed;
+}
+
 export function resolvePreviewPath(
   requestedPath: string,
   repoRoot: string,
 ): string {
-  const resolved = path.resolve(repoRoot, requestedPath);
+  const normalized = normalizeRequestedPath(requestedPath);
+  const resolved = path.resolve(repoRoot, normalized);
   const allowed = ALLOWED_DIRECTORIES.some((directory) =>
     isInside(path.resolve(repoRoot, directory), resolved),
   );
