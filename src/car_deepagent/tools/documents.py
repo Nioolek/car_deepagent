@@ -10,7 +10,7 @@ from langchain_core.tools import tool
 
 from car_deepagent.analysis_docs import resolve_interview_file
 from car_deepagent.config import build_chat_model
-from car_deepagent.paths import markdown_cache_dir, summary_trees_dir
+from car_deepagent.paths import doc_maps_dir, markdown_cache_dir, summary_trees_dir
 
 MAX_LINES_DIRECT = 500
 MAX_CHARS_DIRECT = 15000
@@ -243,6 +243,89 @@ def split_chapters(markdown: str) -> list[dict]:
             buf.append(line)
     flush()
     return chapters
+
+
+def _doc_map_path(doc_id: str) -> Path:
+    if _doc_id_error(doc_id) is not None:
+        raise ValueError(f"Invalid doc_id: {doc_id}")
+    return doc_maps_dir() / f"{doc_id}.json"
+
+
+@tool
+def save_doc_map(doc_id: str, map_json: str) -> str:
+    """Persist a provenance map (sections + highlights) for a cached markdown doc."""
+    if err := _doc_id_error(doc_id):
+        return err
+    markdown_path = markdown_cache_dir() / f"{doc_id}.md"
+    if not markdown_path.exists():
+        return json.dumps(
+            {"error": f"Markdown not found for doc_id: {doc_id}"},
+            ensure_ascii=False,
+        )
+    try:
+        payload = json.loads(map_json)
+    except json.JSONDecodeError as exc:
+        return json.dumps(
+            {"error": f"Invalid map_json: {exc}"},
+            ensure_ascii=False,
+        )
+
+    markdown = markdown_path.read_text(encoding="utf-8")
+    markdown_sha256 = hashlib.sha256(markdown.encode("utf-8")).hexdigest()
+    stored = {
+        "doc_id": doc_id,
+        "markdown_sha256": markdown_sha256,
+        "sections": payload.get("sections", []),
+        "highlights": payload.get("highlights", []),
+    }
+    map_path = _doc_map_path(doc_id)
+    map_path.parent.mkdir(parents=True, exist_ok=True)
+    map_path.write_text(
+        json.dumps(stored, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    return json.dumps(
+        {**stored, "cached": False, "map_path": str(map_path)},
+        ensure_ascii=False,
+    )
+
+
+@tool
+def load_doc_map(doc_id: str) -> str:
+    """Load a cached provenance map if markdown sha256 still matches."""
+    if err := _doc_id_error(doc_id):
+        return err
+    map_path = _doc_map_path(doc_id)
+    if not map_path.exists():
+        return json.dumps(
+            {"error": f"Doc map not found for doc_id: {doc_id}"},
+            ensure_ascii=False,
+        )
+    markdown_path = markdown_cache_dir() / f"{doc_id}.md"
+    if not markdown_path.exists():
+        return json.dumps(
+            {"error": f"Markdown not found for doc_id: {doc_id}"},
+            ensure_ascii=False,
+        )
+    try:
+        stored = json.loads(map_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return json.dumps(
+            {"error": f"Doc map not found for doc_id: {doc_id}"},
+            ensure_ascii=False,
+        )
+
+    markdown = markdown_path.read_text(encoding="utf-8")
+    markdown_sha256 = hashlib.sha256(markdown.encode("utf-8")).hexdigest()
+    if stored.get("markdown_sha256") != markdown_sha256:
+        return json.dumps(
+            {"cached": False, "stale": True, "doc_id": doc_id},
+            ensure_ascii=False,
+        )
+    return json.dumps(
+        {**stored, "cached": True, "map_path": str(map_path)},
+        ensure_ascii=False,
+    )
 
 
 def _tree_path(doc_id: str) -> Path:

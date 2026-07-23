@@ -36,3 +36,9 @@ def markdown_cache_dir() -> Path:
     path = cache_dir() / "markdown"
     path.mkdir(parents=True, exist_ok=True)
     return path
+
+
+def doc_maps_dir() -> Path:
+    path = cache_dir() / "doc_maps"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
