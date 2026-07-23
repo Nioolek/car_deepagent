@@ -64,3 +64,27 @@ def test_before_agent_no_slash_unchanged():
     mw = SkillCommandMiddleware(backend=_backend())
     state = {"messages": [HumanMessage(content="普通问题", id="h4")]}
     assert mw.before_agent(state, runtime=None) is None
+
+
+def test_before_agent_injects_for_multimodal_text_blocks():
+    """Agent Chat UI sends content as [{type: text, text: ...}]."""
+    mw = SkillCommandMiddleware(backend=_backend())
+    state = {
+        "messages": [
+            HumanMessage(
+                content=[
+                    {
+                        "type": "text",
+                        "text": "/single-report-analysis 总结座舱评价",
+                    }
+                ],
+                id="h5",
+            )
+        ]
+    }
+    update = mw.before_agent(state, runtime=None)
+    assert update is not None
+    humans = [m for m in update["messages"] if getattr(m, "type", None) == "human"]
+    assert humans[-1].content == "总结座舱评价"
+    ais = [m for m in update["messages"] if isinstance(m, AIMessage) and m.tool_calls]
+    assert ais[-1].tool_calls[0]["name"] == "read_file"

@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from langchain_core.messages import AIMessage, ToolMessage
 
@@ -16,6 +17,28 @@ _COMMAND_RE = re.compile(
 class SkillCommand:
     name: str
     remainder: str
+
+
+def human_message_text(content: Any) -> str:
+    """Flatten HumanMessage.content (str or multimodal blocks) to plain text."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for block in content:
+            if isinstance(block, str):
+                parts.append(block)
+            elif isinstance(block, dict):
+                if block.get("type") == "text" and isinstance(block.get("text"), str):
+                    parts.append(block["text"])
+                elif isinstance(block.get("text"), str):
+                    parts.append(block["text"])
+            else:
+                text = getattr(block, "text", None)
+                if isinstance(text, str):
+                    parts.append(text)
+        return "".join(parts)
+    return ""
 
 
 def discover_skill_names(skills_root: Path) -> set[str]:

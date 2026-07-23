@@ -114,3 +114,49 @@ def test_wrap_tool_call_blocks_wrong_doc_id():
     result = mw.wrap_tool_call(request, handler)
     handler.assert_not_called()
     assert "interview_003" in str(result.content)
+
+
+def test_wrap_tool_call_blocks_other_markdown_via_read_file():
+    mw = AnalysisDocPathsMiddleware()
+    request = ToolCallRequest(
+        tool_call={
+            "name": "read_file",
+            "args": {"file_path": "/workspace/cache/markdown/interview_002.md"},
+            "id": "tc4",
+            "type": "tool_call",
+        },
+        tool=None,
+        state={},
+        runtime=SimpleNamespace(
+            context=AgentContext(
+                analysis_doc_paths=["docs/interviews/interview_001.docx"],
+            )
+        ),
+    )
+    handler = MagicMock()
+    result = mw.wrap_tool_call(request, handler)
+    handler.assert_not_called()
+    assert "interview_002" in str(result.content)
+
+
+def test_wrap_tool_call_allows_skill_read_file_with_picker():
+    mw = AnalysisDocPathsMiddleware()
+    request = ToolCallRequest(
+        tool_call={
+            "name": "read_file",
+            "args": {"file_path": "/skills/single-report-analysis/SKILL.md"},
+            "id": "tc5",
+            "type": "tool_call",
+        },
+        tool=None,
+        state={},
+        runtime=SimpleNamespace(
+            context=AgentContext(
+                analysis_doc_paths=["docs/interviews/interview_001.docx"],
+            )
+        ),
+    )
+    handler = MagicMock(return_value=ToolMessage(content="ok", tool_call_id="tc5"))
+    result = mw.wrap_tool_call(request, handler)
+    handler.assert_called_once_with(request)
+    assert result.content == "ok"

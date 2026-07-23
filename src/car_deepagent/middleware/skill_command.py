@@ -20,6 +20,7 @@ from car_deepagent.paths import repo_root
 from car_deepagent.skill_commands import (
     build_skill_load_messages,
     discover_skill_names,
+    human_message_text,
     parse_skill_command,
     skill_md_virtual_path,
 )
@@ -59,7 +60,7 @@ class SkillCommandMiddleware(AgentMiddleware):
             return None
 
         human = messages[last_human_idx]
-        text = human.content if isinstance(human.content, str) else ""
+        text = human_message_text(human.content)
         known = discover_skill_names(self._skills_root)
         cmd = parse_skill_command(text, known)
         if cmd is None:

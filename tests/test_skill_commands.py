@@ -6,6 +6,7 @@ from car_deepagent.paths import repo_root
 from car_deepagent.skill_commands import (
     build_skill_load_messages,
     discover_skill_names,
+    human_message_text,
     parse_skill_command,
     skill_md_virtual_path,
 )
@@ -78,3 +79,13 @@ def test_build_skill_load_messages():
     assert tool.tool_call_id == "skill-cmd-test-1"
     assert tool.name == "read_file"
     assert tool.content == "# Skill body\n"
+
+
+def test_human_message_text_string_and_blocks():
+    assert human_message_text("hello") == "hello"
+    assert (
+        human_message_text([{"type": "text", "text": "/skill hi"}])
+        == "/skill hi"
+    )
+    assert human_message_text([]) == ""
+    assert human_message_text(None) == ""

@@ -1,35 +1,15 @@
 from types import SimpleNamespace
 
-from langchain_deepseek import ChatDeepSeek
 from langchain_openai import ChatOpenAI
 
 from car_deepagent.config import (
     ReasoningChatOpenAI,
     Settings,
-    _deepseek_api_base,
     _extract_reasoning_from_chunk,
     _extract_reasoning_from_response,
-    _is_deepseek,
     build_chat_model,
     build_thinking_extra_body,
 )
-
-
-def test_deepseek_api_base_strips_v1():
-    assert _deepseek_api_base("https://api.deepseek.com/v1") == (
-        "https://api.deepseek.com"
-    )
-    assert _deepseek_api_base("https://api.deepseek.com/") == (
-        "https://api.deepseek.com"
-    )
-
-
-def test_is_deepseek_detects_url_or_model():
-    assert _is_deepseek(
-        Settings("k", "https://api.deepseek.com/v1", "deepseek-v4-flash", 1)
-    )
-    assert _is_deepseek(Settings("k", "https://example.com/v1", "deepseek-r1", 1))
-    assert not _is_deepseek(Settings("k", "https://example.com/v1", "gpt-4o", 1))
 
 
 def test_extract_reasoning_from_response_dict_and_object():
@@ -66,7 +46,7 @@ def test_build_thinking_extra_body():
     assert build_thinking_extra_body(False) is None
 
 
-def test_build_chat_model_uses_deepseek(monkeypatch):
+def test_build_chat_model_always_openai_compatible(monkeypatch):
     monkeypatch.setattr(
         "car_deepagent.config.load_settings",
         lambda: Settings(
@@ -78,7 +58,8 @@ def test_build_chat_model_uses_deepseek(monkeypatch):
         ),
     )
     model = build_chat_model()
-    assert isinstance(model, ChatDeepSeek)
+    assert isinstance(model, ReasoningChatOpenAI)
+    assert isinstance(model, ChatOpenAI)
     assert model.extra_body == {"chat_template_kwargs": {"thinking": True}}
 
 

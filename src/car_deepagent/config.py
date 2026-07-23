@@ -64,19 +64,6 @@ def build_thinking_extra_body(thinking: bool) -> dict[str, Any] | None:
     return {"chat_template_kwargs": {"thinking": True}}
 
 
-def _is_deepseek(settings: Settings) -> bool:
-    blob = f"{settings.base_url} {settings.model}".lower()
-    return "deepseek" in blob
-
-
-def _deepseek_api_base(base_url: str) -> str:
-    """ChatDeepSeek expects host root; strip trailing /v1 if present."""
-    cleaned = base_url.rstrip("/")
-    if cleaned.endswith("/v1"):
-        return cleaned[: -len("/v1")]
-    return cleaned
-
-
 class ReasoningChatOpenAI(ChatOpenAI):
     """ChatOpenAI that surfaces OpenAI-compatible reasoning_content fields."""
 
@@ -159,16 +146,7 @@ def build_chat_model() -> BaseChatModel:
     s = load_settings()
     timeout_s = s.timeout_ms / 1000.0
     extra_body = build_thinking_extra_body(s.thinking)
-    if _is_deepseek(s):
-        from langchain_deepseek import ChatDeepSeek
-
-        return ChatDeepSeek(
-            model=s.model,
-            api_key=s.api_key,
-            api_base=_deepseek_api_base(s.base_url),
-            timeout=timeout_s,
-            extra_body=extra_body,
-        )
+    # Always OpenAI-compatible client so harness profiles keyed as openai:{model} match.
     return ReasoningChatOpenAI(
         model=s.model,
         api_key=s.api_key,
