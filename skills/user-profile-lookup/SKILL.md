@@ -1,9 +1,6 @@
 ---
 name: user-profile-lookup
-description: >
-  Look up a mock CRM user profile and reconcile it with interview findings.
-  Use when the user mentions user_id (e.g. U001), a name like 陈思远/林婉清/周启明,
-  用户画像, CRM, or asks to cross-check profile vs report claims.
+description: Look up a mock CRM user profile and reconcile it with interview findings. Use when the user mentions user_id (e.g. U001), a name like 陈思远/林婉清/周启明, 用户画像, CRM, or asks to cross-check profile vs report claims.
 license: MIT
 metadata:
   version: "1.0"

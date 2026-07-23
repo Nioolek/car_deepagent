@@ -1,9 +1,6 @@
 ---
 name: multi-report-synthesis
-description: >
-  Compare and synthesize multiple HarmonyOS interview reports. Use when the
-  user provides two or more .docx paths, asks to 对比/综合/差异分析 across
-  interviews, or wants a multi-document synthesis with per-doc footnotes.
+description: Compare and synthesize multiple HarmonyOS interview reports. Use when the user provides two or more .docx paths, asks to 对比/综合/差异分析 across interviews, or wants a multi-document synthesis with per-doc footnotes.
 license: MIT
 metadata:
   version: "1.0"

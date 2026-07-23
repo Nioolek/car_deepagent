@@ -1,10 +1,6 @@
 ---
 name: single-report-analysis
-description: >
-  Analyze a single HarmonyOS Intelligent Mobility (鸿蒙智行) user interview
-  Word report (.docx). Use when the user asks about one interview document,
-  one doc path, NOA/智驾/座舱态度, 单篇报告分析, or footnote-cited findings
-  from a single report.
+description: Analyze a single HarmonyOS Intelligent Mobility (鸿蒙智行) user interview Word report (.docx). Use when the user asks about one interview document, one doc path, NOA/智驾/座舱态度, 单篇报告分析, or footnote-cited findings from a single report.
 license: MIT
 metadata:
   version: "1.0"
