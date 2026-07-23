@@ -44,7 +44,9 @@ MAIN_PROMPT = """你是鸿蒙智行用户调研访谈分析智能体。
    可跳过 inspect_document，直接按 recommendation 执行；否则先 inspect_document
    （path 可用 /docs/interviews/<id>.md 或 stem）。
    recommendation=direct_read 时可由主 agent 用 read_file 分页读取；
-   recommendation=delegate 时必须调用 task(report_analyst)，禁止主 agent 通读长文。
+   recommendation=delegate 时必须调用 task(report_analyst)，禁止主 agent 通读长文
+   （子代理会全量 read_file；调用 task 时请在 description 里写明
+   read_file(..., offset=0, limit=50000) 一次读完，不要要求分页）。
 3. 多篇文档时尽量在同一轮并行调用多个 task(report_analyst)；对比题优先加载
    multi-report-synthesis skill，不要重复加载无关 skill。
 4. 最终回答必须自洽完整：内联脚注格式必须严格为 [^doc§L123] 或 [^doc_id§L100-L150]
