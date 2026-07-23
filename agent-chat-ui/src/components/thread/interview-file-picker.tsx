@@ -54,7 +54,7 @@ export function InterviewFilePicker({
     const needle = query.trim().toLowerCase();
     if (!needle) return files;
     return files.filter((file) => {
-      const stem = file.name.replace(/\.docx$/i, "");
+      const stem = file.name.replace(/\.md$/i, "");
       return (
         file.name.toLowerCase().includes(needle) ||
         stem.toLowerCase().includes(needle) ||
@@ -110,7 +110,7 @@ export function InterviewFilePicker({
       ) : error ? (
         <p className="text-xs text-red-600">{error}</p>
       ) : files.length === 0 ? (
-        <p className="text-xs text-slate-500">docs/interviews 下暂无 .docx</p>
+        <p className="text-xs text-slate-500">docs/interviews 下暂无 .md</p>
       ) : filtered.length === 0 ? (
         <p className="text-xs text-slate-500">无匹配「{query.trim()}」的文件</p>
       ) : (

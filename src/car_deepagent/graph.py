@@ -21,7 +21,6 @@ from car_deepagent.middleware import (
 from car_deepagent.paths import repo_root
 from car_deepagent.subagents.report_analyst import build_report_analyst_subagent
 from car_deepagent.tools.documents import (
-    ensure_document_markdown,
     inspect_document,
     load_doc_map,
     save_doc_map,
@@ -35,14 +34,13 @@ MAIN_PROMPT = """你是鸿蒙智行用户调研访谈分析智能体。
 能力：单篇/多篇报告分析、用户画像交叉验证、todo 规划、脚注溯源、skills。
 
 规则：
-1. 文件系统只允许读取：/skills/**、/docs/interviews/**、
-   /workspace/cache/doc_maps/**、/workspace/cache/markdown/**。
-   访谈 Word 报告一律在 docs/interviews/ 下查找；可用完整路径、文件名或 stem
-   （如 interview_001）。若运行上下文提供了 analysis_doc_paths（界面勾选），
-   本轮只能分析这些路径，不要打开列表外的访谈文档。
-2. 每篇文档先 ensure_document_markdown → inspect_document。recommendation=direct_read
-   时可由主 agent 用 read_file 分页读取；recommendation=delegate 时必须调用
-   task(report_analyst)，禁止主 agent 通读长文。
+1. 文件系统只允许读取：/skills/**、/docs/interviews/**、/workspace/cache/doc_maps/**。
+   访谈报告为 docs/interviews/*.md；可用完整路径、文件名或 stem（如 interview_001）。
+   若运行上下文提供了 analysis_doc_paths（界面勾选），本轮只能分析这些路径，
+   不要打开列表外的访谈文档。
+2. 每篇文档先 inspect_document。recommendation=direct_read 时可由主 agent 用
+   read_file 分页读取；recommendation=delegate 时必须调用 task(report_analyst)，
+   禁止主 agent 通读长文。
 3. 多篇文档时尽量在同一轮并行调用多个 task(report_analyst)。
 4. 回答使用 [^doc§L123] 或 [^doc§L100-L150] 行号脚注，并附
    ## 参考文献摘录。
@@ -77,7 +75,6 @@ def build_graph():
         model=model,
         tools=[
             get_user_profile,
-            ensure_document_markdown,
             inspect_document,
             load_doc_map,
             save_doc_map,

@@ -13,23 +13,28 @@ class AgentContext:
     analysis_doc_paths: list[str] = field(default_factory=list)
 
 
-def list_interview_docx_paths() -> list[str]:
-    """Return repo-relative posix paths for interview .docx files."""
+def list_interview_md_paths() -> list[str]:
+    """Return repo-relative posix paths for interview .md files."""
     root = interviews_dir()
     if not root.is_dir():
         return []
-    paths = sorted(root.glob("*.docx"))
+    paths = sorted(root.glob("*.md"))
     repo = repo_root().resolve()
     return [p.resolve().relative_to(repo).as_posix() for p in paths]
+
+
+# Backward-compatible alias used by older tests/callers during migration.
+def list_interview_docx_paths() -> list[str]:
+    return list_interview_md_paths()
 
 
 def search_interview_docs(query: str | None = None) -> list[str]:
     """List interview docs under docs/interviews, optionally filtered by name.
 
-    Matching is case-insensitive substring on the filename (with or without .docx).
+    Matching is case-insensitive substring on the filename (with or without .md).
     Empty / whitespace query returns the full list.
     """
-    paths = list_interview_docx_paths()
+    paths = list_interview_md_paths()
     needle = (query or "").strip().lower()
     if not needle:
         return paths
@@ -41,11 +46,11 @@ def search_interview_docs(query: str | None = None) -> list[str]:
 
 
 def resolve_interview_file(path: str) -> Path | None:
-    """Resolve a document reference to an absolute .docx under docs/interviews.
+    """Resolve a document reference to an absolute .md under docs/interviews.
 
     Accepts:
-    - repo-relative paths like docs/interviews/interview_001.docx
-    - bare filenames interview_001.docx
+    - repo-relative paths like docs/interviews/interview_001.md
+    - bare filenames interview_001.md
     - bare stems interview_001
     - absolute paths that still resolve inside docs/interviews
     """
@@ -68,10 +73,10 @@ def resolve_interview_file(path: str) -> Path | None:
             trials.append(repo / posix)
         if name:
             trials.append(interviews / name)
-        if stem and not name.lower().endswith(".docx"):
-            trials.append(interviews / f"{stem}.docx")
+        if stem and not name.lower().endswith(".md"):
+            trials.append(interviews / f"{stem}.md")
         elif stem:
-            trials.append(interviews / f"{stem}.docx")
+            trials.append(interviews / f"{stem}.md")
         trials.append(repo / candidate)
 
     seen: set[Path] = set()
@@ -87,7 +92,7 @@ def resolve_interview_file(path: str) -> Path | None:
             resolved.relative_to(interviews)
         except ValueError:
             continue
-        if resolved.suffix.lower() != ".docx":
+        if resolved.suffix.lower() != ".md":
             continue
         if resolved.is_file():
             return resolved
@@ -103,7 +108,7 @@ def normalize_doc_path(path: str) -> str | None:
 
 
 def normalize_analysis_doc_paths(paths: list[str] | None) -> list[str]:
-    """Deduplicate and keep only valid interview docx paths (stable order)."""
+    """Deduplicate and keep only valid interview markdown paths (stable order)."""
     if not paths:
         return []
     seen: set[str] = set()
@@ -119,6 +124,11 @@ def normalize_analysis_doc_paths(paths: list[str] | None) -> list[str]:
 
 def allowed_doc_ids(paths: list[str]) -> set[str]:
     return {Path(p).stem for p in paths}
+
+
+def interview_virtual_path(doc_id: str) -> str:
+    """Virtual FS path for agent read_file / grep."""
+    return f"/docs/interviews/{doc_id}.md"
 
 
 def extract_analysis_doc_paths(context: object | None) -> list[str]:

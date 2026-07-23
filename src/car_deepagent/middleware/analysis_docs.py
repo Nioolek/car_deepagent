@@ -17,7 +17,7 @@ from car_deepagent.analysis_docs import (
     normalize_doc_path,
 )
 
-_DOC_PATH_TOOLS = frozenset({"ensure_document_markdown", "inspect_document"})
+_DOC_PATH_TOOLS = frozenset({"inspect_document"})
 _DOC_ID_TOOLS = frozenset(
     {
         "load_doc_map",
@@ -25,7 +25,7 @@ _DOC_ID_TOOLS = frozenset(
     }
 )
 _PATH_READ_TOOLS = frozenset({"read_file", "read", "grep", "glob", "ls"})
-_MARKDOWN_CACHE_RE = re.compile(r"^/workspace/cache/markdown/([^/]+)\.md$")
+_INTERVIEW_MD_RE = re.compile(r"^/docs/interviews/([^/]+)\.md$")
 _DOC_MAP_RE = re.compile(r"^/workspace/cache/doc_maps/([^/]+)\.json$")
 
 
@@ -52,10 +52,10 @@ def _instruction_block(paths: list[str]) -> str:
         "本轮用户已在界面选择分析文档。你必须且只能分析下列路径对应的访谈报告，"
         "不要打开或引用列表之外的访谈文件：\n"
         f"{bullets}\n"
-        "调用 ensure_document_markdown、inspect_document 时使用上述路径或 doc_id；"
+        "调用 inspect_document 时使用上述路径或 doc_id；"
         "load_doc_map、save_doc_map 的 doc_id 必须是这些文件的文件名（不含扩展名）；"
         "文档地图记录原文行号，用 read_file 读原文时只允许 "
-        "`/workspace/cache/markdown/<上述 doc_id>.md`，"
+        "`/docs/interviews/<上述 doc_id>.md`，"
         "引用必须使用 [^doc_id§L123] 或 [^doc_id§L100-L150] 行号脚注。"
     )
 
@@ -102,13 +102,13 @@ def _deny_path_read_if_needed(
         return None
 
     allowed = allowed_doc_ids(paths)
-    markdown_match = _MARKDOWN_CACHE_RE.match(posix)
-    if markdown_match:
-        doc_id = markdown_match.group(1)
+    interview_match = _INTERVIEW_MD_RE.match(posix)
+    if interview_match:
+        doc_id = interview_match.group(1)
         if doc_id not in allowed:
             return _denied_tool_message(
                 request,
-                "markdown 不在本轮选择的分析文档列表中："
+                "访谈 markdown 不在本轮选择的分析文档列表中："
                 f"{doc_id}；允许：{', '.join(sorted(allowed))}",
             )
         return None
@@ -124,9 +124,7 @@ def _deny_path_read_if_needed(
             )
         return None
 
-    if posix.startswith(
-        ("/workspace/cache/markdown", "/workspace/cache/doc_maps")
-    ):
+    if posix.startswith("/workspace/cache/doc_maps"):
         return _denied_tool_message(
             request,
             f"缓存路径格式无效或不在本轮选择的分析文档列表中：{raw}",

@@ -79,7 +79,7 @@ def test_deepagents_task_forwards_parent_runtime_context_to_subagent():
         .compile()
     )
 
-    selected = ["docs/interviews/interview_001.docx"]
+    selected = ["docs/interviews/interview_001.md"]
     result = graph.invoke(
         {},
         context=AgentContext(analysis_doc_paths=selected),

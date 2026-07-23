@@ -6,7 +6,6 @@ from deepagents import FilesystemPermission
 ALLOWED_READ_GLOBS = (
     "/skills/**",
     "/docs/interviews/**",
-    "/workspace/cache/markdown/**",
     "/workspace/cache/doc_maps/**",
 )
 

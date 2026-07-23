@@ -27,7 +27,7 @@ def test_read_file_line_labels_align_with_map_math():
 
     backend = FilesystemBackend(root_dir=str(repo_root()), virtual_mode=True)
     read_result = backend.read(
-        "/workspace/cache/markdown/interview_001.md",
+        "/docs/interviews/interview_001.md",
         offset=offset,
         limit=limit,
     )

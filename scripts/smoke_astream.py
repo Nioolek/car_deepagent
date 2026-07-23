@@ -10,8 +10,8 @@ from car_deepagent.paths import interviews_dir
 async def run(mode: str) -> None:
     graph = get_graph()
     docs = interviews_dir()
-    p1 = docs / "interview_001.docx"
-    p2 = docs / "interview_002.docx"
+    p1 = docs / "interview_001.md"
+    p2 = docs / "interview_002.md"
 
     if mode == "single":
         content = f"请分析这份访谈中用户对 NOA 的态度，并给出脚注溯源。文档：{p1}"

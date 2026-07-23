@@ -9,8 +9,8 @@ from car_deepagent.fs_permissions import (
 def test_allowed_read_globs_cover_required_roots():
     assert "/skills/**" in ALLOWED_READ_GLOBS
     assert "/docs/interviews/**" in ALLOWED_READ_GLOBS
-    assert "/workspace/cache/markdown/**" in ALLOWED_READ_GLOBS
     assert "/workspace/cache/doc_maps/**" in ALLOWED_READ_GLOBS
+    assert "/workspace/cache/markdown/**" not in ALLOWED_READ_GLOBS
 
 
 def test_permissions_allow_whitelisted_reads():
@@ -20,15 +20,7 @@ def test_permissions_allow_whitelisted_reads():
         == "allow"
     )
     assert (
-        _check_fs_permission(rules, "read", "/docs/interviews/interview_001.docx")
-        == "allow"
-    )
-    assert (
-        _check_fs_permission(
-            rules,
-            "read",
-            "/workspace/cache/markdown/interview_001.md",
-        )
+        _check_fs_permission(rules, "read", "/docs/interviews/interview_001.md")
         == "allow"
     )
     assert (
@@ -48,7 +40,15 @@ def test_permissions_deny_other_reads_and_all_writes():
     assert _check_fs_permission(rules, "read", "/data/users/U001.json") == "deny"
     assert _check_fs_permission(rules, "read", "/docs/superpowers/specs/x.md") == "deny"
     assert (
-        _check_fs_permission(rules, "write", "/docs/interviews/interview_001.docx")
+        _check_fs_permission(rules, "write", "/docs/interviews/interview_001.md")
         == "deny"
     )
     assert _check_fs_permission(rules, "write", "/skills/x/SKILL.md") == "deny"
+    assert (
+        _check_fs_permission(
+            rules,
+            "read",
+            "/workspace/cache/markdown/interview_001.md",
+        )
+        == "deny"
+    )

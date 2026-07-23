@@ -1,13 +1,8 @@
-"""Generate deterministic, fabricated Chinese automotive interview samples."""
-
 from __future__ import annotations
 
 import re
 from itertools import cycle
 from pathlib import Path
-
-from docx import Document
-
 
 OUTPUT_DIR = Path(__file__).resolve().parents[1] / "docs" / "interviews"
 DISCLAIMER = "虚构样例，非真实用户数据"
@@ -110,43 +105,50 @@ def answer(profile: dict[str, str], section: str, round_number: int) -> str:
     )
 
 
-def build_document(doc_id: str, profile: dict[str, str], target_chars: int) -> tuple[Document, int]:
-    document = Document()
-    document.add_heading(f"鸿蒙智行用户访谈 {doc_id}", level=0)
-    document.add_paragraph(DISCLAIMER)
-    document.add_paragraph(
-        f"受访者编号：{profile['user_id']}　姓名：{profile['name']}　当前产品：{profile['product']}"
-    )
+def build_markdown(doc_id: str, profile: dict[str, str], target_chars: int) -> tuple[str, int]:
+    lines: list[str] = [
+        f"# 鸿蒙智行用户访谈 {doc_id}",
+        "",
+        DISCLAIMER,
+        "",
+        (
+            f"受访者编号：{profile['user_id']}　姓名：{profile['name']}　"
+            f"当前产品：{profile['product']}"
+        ),
+        "",
+    ]
 
     body_count = 0
     question_number = 1
     section_target = (target_chars + len(SECTIONS) - 1) // len(SECTIONS)
     for section, questions in SECTIONS.items():
-        document.add_heading(section, level=1)
+        lines.append(f"## {section}")
+        lines.append("")
         prompts = cycle(questions)
         section_count = 0
         round_number = 0
         while section_count < section_target:
             question = next(prompts)
             response = answer(profile, section, round_number)
-            paragraph = f"问{question_number}：{question}\n{response}"
-            document.add_paragraph(paragraph)
+            paragraph = f"问{question_number}：{question}\n\n{response}"
+            lines.append(paragraph)
+            lines.append("")
             paragraph_count = chinese_character_count(paragraph)
             section_count += paragraph_count
             body_count += paragraph_count
             question_number += 1
             round_number += 1
 
-    return document, body_count
+    return "\n".join(lines).rstrip() + "\n", body_count
 
 
 def main() -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     targets = {"001": 20_500, "002": 5_000, "003": 5_000}
     for doc_id, profile in PARTICIPANTS.items():
-        document, count = build_document(doc_id, profile, targets[doc_id])
-        output_path = OUTPUT_DIR / f"interview_{doc_id}.docx"
-        document.save(output_path)
+        text, count = build_markdown(doc_id, profile, targets[doc_id])
+        output_path = OUTPUT_DIR / f"interview_{doc_id}.md"
+        output_path.write_text(text, encoding="utf-8")
         print(f"{output_path}: {count} Chinese body characters")
 
 

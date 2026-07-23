@@ -28,7 +28,7 @@ def test_wrap_model_call_appends_instruction():
     request = MagicMock(spec=ModelRequest)
     request.runtime = SimpleNamespace(
         context=AgentContext(
-            analysis_doc_paths=["docs/interviews/interview_001.docx"],
+            analysis_doc_paths=["docs/interviews/interview_001.md"],
         )
     )
     request.system_message = SystemMessage(content="base prompt")
@@ -41,7 +41,7 @@ def test_wrap_model_call_appends_instruction():
     kwargs = request.override.call_args.kwargs
     system = kwargs["system_message"]
     assert "base prompt" in system.content
-    assert "docs/interviews/interview_001.docx" in system.content
+    assert "docs/interviews/interview_001.md" in system.content
     assert "只能分析" in system.content or "仅允许" in system.content
 
 
@@ -49,8 +49,8 @@ def test_wrap_tool_call_blocks_out_of_list_path():
     mw = AnalysisDocPathsMiddleware()
     request = ToolCallRequest(
         tool_call={
-            "name": "ensure_document_markdown",
-            "args": {"path": "docs/interviews/interview_002.docx"},
+            "name": "inspect_document",
+            "args": {"path": "docs/interviews/interview_002.md"},
             "id": "tc1",
             "type": "tool_call",
         },
@@ -58,7 +58,7 @@ def test_wrap_tool_call_blocks_out_of_list_path():
         state={},
         runtime=SimpleNamespace(
             context=AgentContext(
-                analysis_doc_paths=["docs/interviews/interview_001.docx"],
+                analysis_doc_paths=["docs/interviews/interview_001.md"],
             )
         ),
     )
@@ -75,8 +75,8 @@ def test_wrap_tool_call_allows_selected_path():
     mw = AnalysisDocPathsMiddleware()
     request = ToolCallRequest(
         tool_call={
-            "name": "ensure_document_markdown",
-            "args": {"path": "docs/interviews/interview_001.docx"},
+            "name": "inspect_document",
+            "args": {"path": "docs/interviews/interview_001.md"},
             "id": "tc2",
             "type": "tool_call",
         },
@@ -84,7 +84,7 @@ def test_wrap_tool_call_allows_selected_path():
         state={},
         runtime=SimpleNamespace(
             context=AgentContext(
-                analysis_doc_paths=["docs/interviews/interview_001.docx"],
+                analysis_doc_paths=["docs/interviews/interview_001.md"],
             )
         ),
     )
@@ -107,7 +107,7 @@ def test_wrap_tool_call_allows_inspect_document_for_selected_doc_id():
         state={},
         runtime=SimpleNamespace(
             context=AgentContext(
-                analysis_doc_paths=["docs/interviews/interview_001.docx"],
+                analysis_doc_paths=["docs/interviews/interview_001.md"],
             )
         ),
     )
@@ -130,7 +130,7 @@ def test_wrap_tool_call_blocks_inspect_document_for_other_doc_id():
         state={},
         runtime=SimpleNamespace(
             context=AgentContext(
-                analysis_doc_paths=["docs/interviews/interview_001.docx"],
+                analysis_doc_paths=["docs/interviews/interview_001.md"],
             )
         ),
     )
@@ -153,7 +153,7 @@ def test_wrap_tool_call_blocks_load_doc_map_for_other_doc_id():
         state={},
         runtime=SimpleNamespace(
             context=AgentContext(
-                analysis_doc_paths=["docs/interviews/interview_001.docx"],
+                analysis_doc_paths=["docs/interviews/interview_001.md"],
             )
         ),
     )
@@ -168,7 +168,7 @@ def test_wrap_tool_call_blocks_other_markdown_via_read_file():
     request = ToolCallRequest(
         tool_call={
             "name": "read_file",
-            "args": {"file_path": "/workspace/cache/markdown/interview_002.md"},
+            "args": {"file_path": "/docs/interviews/interview_002.md"},
             "id": "tc4",
             "type": "tool_call",
         },
@@ -176,7 +176,7 @@ def test_wrap_tool_call_blocks_other_markdown_via_read_file():
         state={},
         runtime=SimpleNamespace(
             context=AgentContext(
-                analysis_doc_paths=["docs/interviews/interview_001.docx"],
+                analysis_doc_paths=["docs/interviews/interview_001.md"],
             )
         ),
     )
@@ -199,7 +199,7 @@ def test_wrap_tool_call_blocks_other_doc_map_via_read_file():
         state={},
         runtime=SimpleNamespace(
             context=AgentContext(
-                analysis_doc_paths=["docs/interviews/interview_001.docx"],
+                analysis_doc_paths=["docs/interviews/interview_001.md"],
             )
         ),
     )
@@ -212,7 +212,7 @@ def test_wrap_tool_call_blocks_other_doc_map_via_read_file():
 @pytest.mark.parametrize(
     "file_path",
     [
-        "/workspace/cache/markdown/./interview_002.md",
+        "/docs/interviews/./interview_002.md",
         "/workspace/cache/doc_maps/./other.json",
     ],
 )
@@ -229,7 +229,7 @@ def test_wrap_tool_call_blocks_dot_alias_to_unselected_cache_doc(file_path):
         state={},
         runtime=SimpleNamespace(
             context=AgentContext(
-                analysis_doc_paths=["docs/interviews/interview_001.docx"],
+                analysis_doc_paths=["docs/interviews/interview_001.md"],
             )
         ),
     )
@@ -245,7 +245,7 @@ def test_wrap_tool_call_blocks_dot_alias_to_unselected_cache_doc(file_path):
 @pytest.mark.parametrize(
     "file_path",
     [
-        "/workspace/cache/markdown/subdir/../interview_002.md",
+        "/docs/interviews/subdir/../interview_002.md",
         "/workspace/cache/doc_maps/subdir/../other.json",
     ],
 )
@@ -262,7 +262,7 @@ def test_wrap_tool_call_blocks_parent_traversal_in_cache_path(file_path):
         state={},
         runtime=SimpleNamespace(
             context=AgentContext(
-                analysis_doc_paths=["docs/interviews/interview_001.docx"],
+                analysis_doc_paths=["docs/interviews/interview_001.md"],
             )
         ),
     )
@@ -288,7 +288,7 @@ def test_wrap_tool_call_allows_skill_read_file_with_picker():
         state={},
         runtime=SimpleNamespace(
             context=AgentContext(
-                analysis_doc_paths=["docs/interviews/interview_001.docx"],
+                analysis_doc_paths=["docs/interviews/interview_001.md"],
             )
         ),
     )
@@ -310,7 +310,7 @@ def _grep_request(path):
         state={},
         runtime=SimpleNamespace(
             context=AgentContext(
-                analysis_doc_paths=["docs/interviews/interview_001.docx"],
+                analysis_doc_paths=["docs/interviews/interview_001.md"],
             )
         ),
     )
@@ -318,7 +318,7 @@ def _grep_request(path):
 
 def test_wrap_tool_call_blocks_grep_on_unselected_markdown():
     mw = AnalysisDocPathsMiddleware()
-    request = _grep_request("/workspace/cache/markdown/interview_002.md")
+    request = _grep_request("/docs/interviews/interview_002.md")
     handler = MagicMock()
 
     result = mw.wrap_tool_call(request, handler)
@@ -331,7 +331,7 @@ def test_wrap_tool_call_blocks_grep_on_unselected_markdown():
 @pytest.mark.parametrize(
     "path",
     [
-        "/workspace/cache/markdown/interview_001.md",
+        "/docs/interviews/interview_001.md",
         "/skills/single-report-analysis/SKILL.md",
     ],
 )
@@ -352,8 +352,8 @@ def test_wrap_tool_call_allows_grep_on_selected_markdown_or_skills(path):
     ("name", "args"),
     [
         ("grep", {"pattern": "needle"}),
-        ("grep", {"pattern": "needle", "path": "/workspace/cache/markdown"}),
-        ("glob", {"pattern": "*.md", "path": "/workspace/cache/markdown"}),
+        ("grep", {"pattern": "needle", "path": "/docs/interviews"}),
+        ("glob", {"pattern": "*.md", "path": "/docs/interviews"}),
         ("ls", {"path": "/workspace/cache/doc_maps"}),
     ],
 )
@@ -372,7 +372,7 @@ def test_wrap_tool_call_blocks_path_tools_that_can_scan_unselected_cache(
         state={},
         runtime=SimpleNamespace(
             context=AgentContext(
-                analysis_doc_paths=["docs/interviews/interview_001.docx"],
+                analysis_doc_paths=["docs/interviews/interview_001.md"],
             )
         ),
     )

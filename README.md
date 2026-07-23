@@ -2,7 +2,7 @@
 
 基于 [Deep Agents](https://github.com/langchain-ai/deepagents) / LangGraph 的鸿蒙智行用户访谈报告分析智能体。
 
-支持：单篇/多篇 Word 报告问答、用户画像交叉验证、文档地图长文处理、脚注溯源、todo 规划、skills。V1 只交付可编译的 `graph`，本地用 `astream` 调试；后续可挂 LangGraph API / Runtime。
+支持：单篇/多篇 Markdown 访谈报告问答、用户画像交叉验证、文档地图长文处理、脚注溯源、todo 规划、skills。V1 只交付可编译的 `graph`，本地用 `astream` 调试；后续可挂 LangGraph API / Runtime。
 
 ## 环境要求
 
@@ -77,13 +77,13 @@ pnpm dev
 也可在输入框中直接写路径，例如：
 
 ```text
-请总结 docs/interviews/interview_001.docx 中用户对座舱语音的评价，并给出脚注溯源。
+请总结 docs/interviews/interview_001.md 中用户对座舱语音的评价，并给出脚注溯源。
 ```
 
 也可用 slash 强制加载 skill（命令名 = `skills/` 下目录名）：
 
 ```text
-/single-report-analysis 请总结 docs/interviews/interview_001.docx 中用户对座舱语音的评价，并给出脚注溯源。
+/single-report-analysis 请总结 docs/interviews/interview_001.md 中用户对座舱语音的评价，并给出脚注溯源。
 ```
 
 可用：`/single-report-analysis`、`/multi-report-synthesis`、`/user-profile-lookup`。  
@@ -118,12 +118,12 @@ uv run python scripts/smoke_astream.py --mode profile
 
 1. 读取根目录 `.env` 构建模型
 2. 加载 `car_deepagent.graph:graph`
-3. 用样例访谈 `docs/interviews/*.docx` 发起问题
+3. 用样例访谈 `docs/interviews/*.md` 发起问题
 4. 通过 `graph.astream` 打印思考/工具/todo/最终回答
 
 预期现象：
 
-- 流式输出中出现工具调用（如 `ensure_document_markdown`、`inspect_document`、`load_doc_map`、`task` / `get_user_profile`）
+- 流式输出中出现工具调用（如 `inspect_document`、`load_doc_map`、`task` / `get_user_profile`）
 - 最终回答含 `[^interview_xxx§L123]` 或 `[^interview_xxx§L100-L150]` 脚注与 `## 参考文献摘录`
 - 文档地图缓存写入 `workspace/cache/doc_maps/`（已 gitignore）
 
@@ -137,7 +137,7 @@ from car_deepagent.graph import get_graph
 
 async def main():
     graph = get_graph()
-    doc = "docs/interviews/interview_001.docx"
+    doc = "docs/interviews/interview_001.md"
     query = f"请总结用户对座舱语音的评价，并给出脚注溯源。文档：{doc}"
     config = {"configurable": {"thread_id": "demo-1"}}  # 多轮对话复用同一 thread_id
 
@@ -180,7 +180,7 @@ uv run python scripts/generate_sample_docs.py
 ```text
 src/car_deepagent/     # graph、tools、subagents
 skills/                # 三个分析 skill
-docs/interviews/       # 伪造 Word 访谈样例
+docs/interviews/       # 伪造 Markdown 访谈样例
 data/users/            # mock 用户画像
 scripts/smoke_astream.py
 workspace/cache/       # 运行时缓存（不入库）

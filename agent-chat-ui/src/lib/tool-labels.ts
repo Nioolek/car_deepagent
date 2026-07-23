@@ -11,7 +11,6 @@ const TOOL_LABELS: Record<string, string> = {
   edit_file: "编辑文件",
   execute: "执行命令",
   task: "子任务",
-  ensure_document_markdown: "转换文档",
   inspect_document: "检查文档体量",
   load_doc_map: "加载文档地图",
   save_doc_map: "保存文档地图",

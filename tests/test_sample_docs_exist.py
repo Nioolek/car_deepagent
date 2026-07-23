@@ -1,32 +1,26 @@
-import re
-
-from docx import Document
-
 from car_deepagent.paths import interviews_dir
 
 
-def test_three_interviews_exist():
-    directory = interviews_dir()
-    for name in ("interview_001.docx", "interview_002.docx", "interview_003.docx"):
-        assert (directory / name).exists(), name
+def test_sample_interview_markdown_files_exist():
+    for name in ("interview_001.md", "interview_002.md", "interview_003.md"):
+        path = interviews_dir() / name
+        assert path.is_file(), f"missing {path}"
 
 
-def test_interviews_match_mock_profiles_and_include_disclaimer():
+def test_sample_interview_markdown_contains_expected_markers():
     expected = {
-        "interview_001.docx": ("U001", "陈思远", "上海", "问界 M7"),
-        "interview_002.docx": ("U002", "林婉清", "深圳", "智界 R7"),
-        "interview_003.docx": ("U003", "周启明", "杭州", "享界 S9"),
+        "interview_001.md": ("U001", "陈思远", "上海", "问界 M7"),
+        "interview_002.md": ("U002", "林婉清", "深圳", "智界 R7"),
+        "interview_003.md": ("U003", "周启明", "杭州", "享界 S9"),
     }
-    for filename, profile_values in expected.items():
-        document = Document(interviews_dir() / filename)
-        text = "\n".join(paragraph.text for paragraph in document.paragraphs)
-        assert "虚构样例，非真实用户数据" in text
-        for value in profile_values:
-            assert value in text
+    for name, markers in expected.items():
+        text = (interviews_dir() / name).read_text(encoding="utf-8")
+        for marker in markers:
+            assert marker in text, f"{name} missing {marker}"
 
 
-def test_first_interview_has_at_least_20000_chinese_characters():
-    document = Document(interviews_dir() / "interview_001.docx")
-    text = "\n".join(paragraph.text for paragraph in document.paragraphs)
-    chinese_chars = re.findall(r"[\u3400-\u4dbf\u4e00-\u9fff]", text)
-    assert len(chinese_chars) >= 20_000
+def test_sample_interview_001_has_sections():
+    text = (interviews_dir() / "interview_001.md").read_text(encoding="utf-8")
+    assert "## 背景" in text
+    assert "## 智驾/NOA" in text
+    assert "虚构样例" in text

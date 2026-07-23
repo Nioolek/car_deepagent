@@ -14,7 +14,7 @@ type InterviewFile = {
 function matchesQuery(file: InterviewFile, query: string): boolean {
   const needle = query.trim().toLowerCase();
   if (!needle) return true;
-  const stem = file.name.replace(/\.docx$/i, "");
+  const stem = file.name.replace(/\.md$/i, "");
   return (
     file.name.toLowerCase().includes(needle) ||
     stem.toLowerCase().includes(needle) ||
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     const files = entries
       .filter(
         (entry) =>
-          entry.isFile() && entry.name.toLowerCase().endsWith(".docx"),
+          entry.isFile() && entry.name.toLowerCase().endsWith(".md"),
       )
       .map((entry) => ({
         name: entry.name,
